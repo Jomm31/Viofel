@@ -22,6 +22,7 @@ Route::prefix('passenger')->group(function () {
 });
 
 
+Route::delete('/inquiries/{id}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
 
 
 

@@ -9,6 +9,17 @@
 <body>
 <form action="{{ route('inquiries.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
+
+    @if ($errors->any())
+        <div style="color: red;">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="form-container">
         {{-- Left Section --}}
         <div class="left">

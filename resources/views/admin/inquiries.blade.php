@@ -20,21 +20,52 @@
             <h2>Customer Inquiries</h2>
 
         @foreach($inquiries as $inquiry)
-            <div class="inquiry-box">
+    <div class="inquiry-box">
+        <div class="inquiry-content">
+            <!-- Left column: info -->
+            <div class="inquiry-info">
                 <p><strong>Date:</strong> {{ $inquiry->created_at->format('m/d/Y') }}</p>
                 <p><strong>Name:</strong> {{ $inquiry->name }}</p>
                 <p><strong>Email:</strong> {{ $inquiry->email }}</p>
                 <p><strong>Phone:</strong> {{ $inquiry->contact_number }}</p>
-                <p><strong>Message:</strong> {{ $inquiry->message }}</p>
-
-                @if($inquiry->attachment)
-                    <div class="attachment">
-                        <strong>Attachment:</strong><br>
-                        <img src="{{ asset('storage/' . $inquiry->attachment) }}" alt="Attachment">
-                    </div>
-                @endif
             </div>
-        @endforeach
+
+            <!-- Middle column: message -->
+            <div class="inquiry-message">
+                <p><strong>Message:</strong></p>
+                <p>{{ $inquiry->message }}</p>
+            </div>
+
+            <!-- Right column: attachment + delete -->
+            <div class="inquiry-attachment">
+                @if($inquiry->attachment)
+                    @php
+                        $extension = pathinfo($inquiry->attachment, PATHINFO_EXTENSION);
+                    @endphp
+
+                    @if(in_array($extension, ['jpg','jpeg','png','gif']))
+                        <a href="{{ asset('storage/' . $inquiry->attachment) }}" target="_blank">
+                            <img src="{{ asset('storage/' . $inquiry->attachment) }}" alt="Attachment">
+                        </a>
+                    @else
+                        <a href="{{ asset('storage/' . $inquiry->attachment) }}" target="_blank">
+                            Download ({{ strtoupper($extension) }})
+                        </a>
+                    @endif
+                @endif
+
+                <!-- Delete Button -->
+                <form action="{{ route('inquiries.destroy', $inquiry->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this inquiry?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
+
 
 
         </div>
