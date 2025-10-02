@@ -5,7 +5,8 @@
     <ul>
         <li><a href="#">Reservation Lists</a></li>
         <li><a href="#">Paid Clients</a></li>
-        <li class="active"><a href="#">Customer Inquiries</a></li>
+        <li><a href="{{ route('admin.inquiries') }}">Customer Inquiries</a></li>
+        <li><a href="{{ route('admin.faqs') }}">FAQs</a></li>
         <li><a href="#">Analytics</a></li>
     </ul>
 </div>

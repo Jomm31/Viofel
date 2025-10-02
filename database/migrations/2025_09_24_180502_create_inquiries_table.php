@@ -16,7 +16,7 @@ return new class extends Migration
 
 
         Schema::create('inquiries', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('message_id'); // Primary key
             $table->string('name');
             $table->string('email');
             $table->string('contact_number')->nullable();
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('attachment')->nullable();
             $table->timestamps();
         });
+
     }
 
     /**
@@ -33,6 +34,8 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('inquiries');
-    }
+    Schema::table('inquiries', function (Blueprint $table) {
+        $table->dropColumn('contact_number');
+    });
+}
 };

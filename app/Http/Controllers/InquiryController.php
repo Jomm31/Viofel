@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class InquiryController extends Controller
 {
     public function store(Request $request)
+
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -35,7 +36,8 @@ class InquiryController extends Controller
 
         $inquiry->save();
 
-        return redirect()->route('inquiries.admin')->with('success', 'Inquiry submitted!');
+        return redirect()->route('admin.inquiries')->with('success', 'Inquiry submitted!');
+
     }
 
     public function index()
@@ -44,9 +46,9 @@ class InquiryController extends Controller
         return view('admin.inquiries', compact('inquiries'));
     }
 
-    public function destroy($id)
+    public function destroy($message_id)
     {
-        $inquiry = Inquiry::findOrFail($id);
+        $inquiry = Inquiry::findOrFail($message_id);
 
         // If attachment exists, delete it from storage
         if ($inquiry->attachment && Storage::disk('public')->exists($inquiry->attachment)) {
@@ -56,7 +58,7 @@ class InquiryController extends Controller
 
         $inquiry->delete();
 
-        return redirect()->route('inquiries.admin')->with('success', 'Inquiry deleted successfully!');
+        return redirect()->route('admin.inquiries')->with('success', 'Inquiry deleted successfully!');
     }
 
 }

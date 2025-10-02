@@ -46,7 +46,67 @@
             <input type="file" name="attachment" id="attachment">
         </div>
     </div>
+
+    
 </form>
+
+
+    {{-- FAQ Section --}}
+    <div class="faq-container">
+    <div class="faq-header">About Us (Frequently Asked Questions)</div>
+
+    @forelse($faqs as $faq)
+        <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+                {{ $faq->question }}
+                <span>▼</span>
+            </div>
+            <div class="faq-answer">
+                {{ $faq->answer }}
+            </div>
+        </div>
+    @empty
+        <p>No FAQs available right now.</p>
+    @endforelse
+</div>
+    <script>
+        function toggleFaq(element) {
+            const faqItem = element.parentElement;
+            const answer = element.nextElementSibling;
+            
+            // Close all other FAQ items
+            document.querySelectorAll('.faq-item').forEach(item => {
+                if (item !== faqItem) {
+                    item.classList.remove('active');
+                    item.querySelector('.faq-answer').style.maxHeight = '0';
+                    item.querySelector('.faq-answer').style.padding = '0 30px';
+                }
+            });
+            
+            // Toggle current item
+            faqItem.classList.toggle('active');
+            
+            if (faqItem.classList.contains('active')) {
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+                answer.style.padding = '20px 30px';
+            } else {
+                answer.style.maxHeight = '0';
+                answer.style.padding = '0 30px';
+            }
+        }
+
+        // Optional: Auto-open first FAQ item
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstFaq = document.querySelector('.faq-item');
+            if (firstFaq) {
+                firstFaq.classList.add('active');
+                const firstAnswer = firstFaq.querySelector('.faq-answer');
+                firstAnswer.style.maxHeight = firstAnswer.scrollHeight + 'px';
+                firstAnswer.style.padding = '20px 30px';
+            }
+        });
+    </script>
+
 
 </body>
 </html>

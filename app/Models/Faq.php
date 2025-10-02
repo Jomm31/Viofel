@@ -5,15 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Inquiry extends Model
+class Faq extends Model
 {
     use HasFactory;
-    protected $primaryKey = 'message_id';
+
+    protected $table = 'faqs';
+    protected $primaryKey = 'faq_id';
+    public $incrementing = true;
+
     protected $fillable = [
-        'name',
-        'email',
-        'contact_number',
-        'message',
-        'attachment',
+        'question',
+        'answer',
     ];
 }
