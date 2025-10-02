@@ -52,61 +52,69 @@
 
 
     {{-- FAQ Section --}}
-    <div class="faq-container">
-    <div class="faq-header">About Us (Frequently Asked Questions)</div>
 
-    @forelse($faqs as $faq)
-        <div class="faq-item">
-            <div class="faq-question" onclick="toggleFaq(this)">
-                {{ $faq->question }}
-                <span>▼</span>
-            </div>
-            <div class="faq-answer">
-                {{ $faq->answer }}
-            </div>
+    {{-- FAQ Section --}}
+    <div class="faq-container">
+        <div class="faq-header">
+            <h1>About Us</h1>
+            <p>Frequently Asked Questions</p>
         </div>
-    @empty
-        <p>No FAQs available right now.</p>
-    @endforelse
-</div>
-    <script>
+
+        <div class="faq-content">
+            @forelse($faqs as $index => $faq)
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span class="faq-question-number">{{ $index + 1 }}</span>
+                        {{ $faq->question }}
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-answer">
+                        {{ $faq->answer }}
+                    </div>
+                </div>
+            @empty
+                <div class="no-faqs">
+                    <p>No FAQs available at the moment.</p>
+                    <p style="font-size: 0.9rem; color: #a0aec0;">Check back later for updates.</p>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
+
+       <script>
         function toggleFaq(element) {
             const faqItem = element.parentElement;
             const answer = element.nextElementSibling;
+            const isActive = faqItem.classList.contains('active');
             
-            // Close all other FAQ items
+            // Close all FAQ items
             document.querySelectorAll('.faq-item').forEach(item => {
-                if (item !== faqItem) {
-                    item.classList.remove('active');
-                    item.querySelector('.faq-answer').style.maxHeight = '0';
-                    item.querySelector('.faq-answer').style.padding = '0 30px';
-                }
+                item.classList.remove('active');
+                const itemAnswer = item.querySelector('.faq-answer');
+                itemAnswer.style.maxHeight = '0';
+                itemAnswer.style.padding = '0 40px';
             });
             
-            // Toggle current item
-            faqItem.classList.toggle('active');
-            
-            if (faqItem.classList.contains('active')) {
+            // If clicked item wasn't active, open it
+            if (!isActive) {
+                faqItem.classList.add('active');
                 answer.style.maxHeight = answer.scrollHeight + 'px';
-                answer.style.padding = '20px 30px';
-            } else {
-                answer.style.maxHeight = '0';
-                answer.style.padding = '0 30px';
+                 answer.style.padding = '20px 40px 30px 40px';
             }
         }
 
-        // Optional: Auto-open first FAQ item
+        // Auto-open first FAQ item
         document.addEventListener('DOMContentLoaded', function() {
             const firstFaq = document.querySelector('.faq-item');
             if (firstFaq) {
-                firstFaq.classList.add('active');
                 const firstAnswer = firstFaq.querySelector('.faq-answer');
+                firstFaq.classList.add('active');
                 firstAnswer.style.maxHeight = firstAnswer.scrollHeight + 'px';
-                firstAnswer.style.padding = '20px 30px';
+                firstAnswer.style.padding = '20px 40px 30px 40px';
             }
         });
     </script>
-
 
 </body>
 </html>

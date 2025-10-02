@@ -30,6 +30,11 @@ Route::get('/admin/faqs', [FaqController::class, 'index'])->name('admin.faqs');
 Route::post('/admin/faqs', [FaqController::class, 'store'])->name('admin.faqs.store');
 Route::delete('/admin/faqs/{id}', [FaqController::class, 'destroy'])->name('admin.faqs.destroy');
 
+// ✅ New routes for editing
+Route::get('/admin/faqs/{id}/edit', [FaqController::class, 'edit'])->name('admin.faqs.edit');
+Route::put('/admin/faqs/{id}', [FaqController::class, 'update'])->name('admin.faqs.update');
+
+
 // Dashboard and profile routes
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -40,6 +45,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+
 
 
 require __DIR__.'/auth.php';
