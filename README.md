@@ -17,6 +17,8 @@ Viofel is a customer inquiry and FAQ management platform designed to streamline 
 **Key Features:**
 - **Inquiry Management** – Users can submit inquiries with attachments; admins can view and delete inquiries
 - **FAQ Management** – Full CRUD operations for frequently asked questions (Create, Read, Update, Delete)
+
+- **User Profile Management** – Users can edit and manage their profiles
 - **File Attachments** – Support for image and document uploads (JPG, PNG, PDF, DOC, DOCX)
 - **Admin Dashboard** – Centralized management interface for inquiries and FAQs
 
@@ -34,8 +36,8 @@ Viofel is a customer inquiry and FAQ management platform designed to streamline 
 |----------|------------|---------|
 | **Backend Framework** | Laravel | ^9.19 |
 | **PHP Version** | PHP | ^8.0.2 |
-| **JavaScript** | Alpine.js | ^3.4.2 |
-| **API Authentication** | Laravel Sanctum | ^3.0 |
+| **Frontend Build** | Vite | ^4.0.0 |
+| **CSS** | Custom CSS | - |
 | **HTTP Client** | Guzzle | ^7.2 |
 | **Testing** | PHPUnit | ^9.5.10 |
 | **Code Style** | Laravel Pint | ^1.0 |
