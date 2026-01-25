@@ -5,48 +5,34 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
+use Inertia\Inertia;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
 
+// Home page with React
+Route::get('/', function () {
+    return Inertia::render('Welcome');
+})->name('homepage');
 
-
-// Public inquiry routes - CORRECT VERSION
-
-
+// Legacy homepage route (if needed for backward compatibility)
 Route::get('/homepage', [HomeController::class, 'homepage'])->name('homepage.form');
 
-
+// Public inquiry routes
 Route::post('/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
-Route::delete('/inquiries/{id}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
 
-// Admin routes
-Route::get('/admin/inquiries', [InquiryController::class, 'index'])->name('admin.inquiries');
-
-// FAQ routes
-Route::get('/admin/faqs', [FaqController::class, 'index'])->name('admin.faqs');
-Route::post('/admin/faqs', [FaqController::class, 'store'])->name('admin.faqs.store');
-Route::delete('/admin/faqs/{id}', [FaqController::class, 'destroy'])->name('admin.faqs.destroy');
-
-// ✅ New routes for editing
-Route::get('/admin/faqs/{id}/edit', [FaqController::class, 'edit'])->name('admin.faqs.edit');
-Route::put('/admin/faqs/{id}', [FaqController::class, 'update'])->name('admin.faqs.update');
-
-
-// Dashboard and profile routes
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+// Admin routes (TODO: Add authentication middleware when needed)
+Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/inquiries', [InquiryController::class, 'index'])->name('inquiries');
+    Route::delete('/inquiries/{id}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
+    
+    // FAQ routes
+    Route::get('/faqs', [FaqController::class, 'index'])->name('faqs');
+    Route::post('/faqs', [FaqController::class, 'store'])->name('faqs.store');
+    Route::get('/faqs/{id}/edit', [FaqController::class, 'edit'])->name('faqs.edit');
+    Route::put('/faqs/{id}', [FaqController::class, 'update'])->name('faqs.update');
+    Route::delete('/faqs/{id}', [FaqController::class, 'destroy'])->name('faqs.destroy');
 });
-
-
-
-
-require __DIR__.'/auth.php';

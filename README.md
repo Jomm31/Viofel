@@ -2,45 +2,76 @@
 
 
 
-# Viofel
+# Viofel Transport Management System
 
-A web-based inquiry and FAQ management system built with Laravel.
+A comprehensive transport management platform for Viofel Transport, handling reservations, payments, fleet management, and customer support.
 
----
+## About Viofel Transport
 
-## System Definition and Implementation
+Established in 2014, Viofel Transport first served services mostly in Fairview. Current operations rely heavily on transit cooperators overseeing many routes under Viofel's auspices. Viofel Transport works with cooperators who own and run buses under Viofel's corporate umbrella, providing:
+- Tour bus services (reservation-based with set schedules)
+- Everyday bus journeys (running almost around the clock)
+- Dependable, adaptable transportation options
 
-### System Scope
+## Proposed System Architecture
 
-Viofel is a customer inquiry and FAQ management platform designed to streamline communication between users and administrators. The system provides:
+The system digitalizes Viofel Transport's operations through an integrated platform with five core subsystems:
 
-**Key Features:**
-- **Inquiry Management** – Users can submit inquiries with attachments; admins can view and delete inquiries
-- **FAQ Management** – Full CRUD operations for frequently asked questions (Create, Read, Update, Delete)
-
-- **User Profile Management** – Users can edit and manage their profiles
-- **File Attachments** – Support for image and document uploads (JPG, PNG, PDF, DOC, DOCX)
-- **Admin Dashboard** – Centralized management interface for inquiries and FAQs
-
-**Operational Constraints:**
-- Requires PHP 8.0.2 or higher
-- MySQL/MariaDB database required
-- File upload limit: 20MB
-- Supported attachment formats: JPG, JPEG, PNG, PDF, DOC, DOCX
+1. **Reservation Management Subsystem** - Online booking for tour buses with route and schedule options
+2. **Payment Processing Subsystem** - Secure digital payments with tracking and receipts
+3. **Fleet and Route Management Subsystem** - Real-time monitoring, maintenance scheduling, and automated expense calculation
+4. **Customer Support Subsystem** - Communication tools for inquiries and complaints
+5. **Reporting and Analytics Subsystem** - Revenue, bookings, performance, and incident reports
 
 ---
 
-## Development Tools, Frameworks & Technologies
+## Functional Objectives
+- Enable online booking and cancellations for tour and daily bus services
+- Allow digital payment options with transaction confirmation
+- Provide administrators with tools to manage routes and schedules
+- Automate revenue and expense calculations with real-time data inputs
+- Facilitate incident reporting and maintenance scheduling
 
-| Category | Technology | Version |
-|----------|------------|---------|
-| **Backend Framework** | Laravel | ^9.19 |
-| **PHP Version** | PHP | ^8.0.2 |
-| **Frontend Build** | Vite | ^4.0.0 |
-| **CSS** | Custom CSS | - |
-| **HTTP Client** | Guzzle | ^7.2 |
-| **Testing** | PHPUnit | ^9.5.10 |
-| **Code Style** | Laravel Pint | ^1.0 |
+## Non-Functional Objectives
+- Ensure high system availability to support near 24/7 operations
+- Maintain data security and passenger privacy
+- Provide a user-friendly interface accessible via web and mobile devices
+- Support scalability for future expansion of routes and services
+- Optimize system performance to minimize booking and payment processing times
+
+---
+
+## Tech Stack
+
+### Backend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **PHP** | ^8.0.2 | Server-side language |
+| **Laravel** | ^9.19 | Backend framework, routing, database |
+| **Inertia.js** | Latest | Server-side routing with client-side rendering |
+| **MySQL** | - | Primary database |
+| **Guzzle** | ^7.2 | HTTP client for API calls |
+
+### Frontend
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | ^18.x | UI components and interactivity |
+| **Inertia.js React Adapter** | Latest | Seamless Laravel-React integration |
+| **Tailwind CSS** | ^3.1.0 | Utility-first styling |
+| **Vite** | ^4.0.0 | Build tool and development server |
+
+### Development Tools
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **PHPUnit** | ^9.5.10 | PHP testing framework |
+| **Laravel Pint** | ^1.0 | Code formatting |
+| **Axios** | ^1.1.2 | HTTP requests |
+
+### Why This Stack?
+- **Laravel + Inertia + React**: Perfect for complex real-time features (bookings, fleet tracking, payments)
+- **Single-page feel** with server-side routing - best of both worlds
+- **Scalable architecture** for future mobile app development
+- **Rich UI capabilities** for dashboards, analytics, and interactive booking flows
 
 ---
 
