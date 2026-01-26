@@ -5,7 +5,7 @@ export default function AppLayout({ children }) {
     return (
         <div className="min-h-screen bg-white">
             <Navigation />
-            <main>
+            <main className="pt-16">
                 {children}
             </main>
         </div>

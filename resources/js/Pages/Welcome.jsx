@@ -23,31 +23,69 @@ export default function Welcome({ faqs = [] }) {
       <Head title="Welcome to Viofel Transport" />
       
       {/* Hero Section */}
-      <div className="relative bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-6xl md:text-7xl font-serif text-center text-gray-900 mb-16">
-            Ready to Explore
-          </h1>
+      <div className="relative bg-white">
+        <div className="max-w-7xl mx-auto px-1 sm:px-1 lg:px-1" style={{ paddingTop: '30px', paddingBottom: '0' }}>
+          {/* Header Container - 701px total height with overflow hidden to cut bottom */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '210px', height: '591px', overflow: 'hidden' }}>
+            {/* Title */}
+            <h1 
+              className="text-center text-black"
+              style={{
+                fontFamily: 'Crimson Text, serif',
+                fontSize: '124px',
+                lineHeight: '0.9',
+                letterSpacing: '-2.72px',
+                height: '137px',
+                fontWeight: 400,
+                margin: 0,
+              }}
+            >
+              Ready to Explore
+            </h1>
 
-          {/* Hero Image with Red Bars on Side */}
-          <div className="flex items-center justify-center gap-0">
-            {/* Left Red Bar */}
-            <div className="w-32 md:w-40 h-56 md:h-64 bg-gradient-to-b from-red-900 to-red-800 rounded-t-3xl flex-shrink-0"></div>
-            
-            {/* Bus Image */}
-            <div className="flex-1 max-w-5xl -mx-6 relative z-10">
-              <img 
-                src="/images/bus-fleet.jpg" 
-                alt="Viofel Bus Fleet" 
-                className="w-full h-56 md:h-64 object-cover rounded-t-3xl border-4 border-white shadow-2xl"
-                onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&h=600&fit=crop';
+            {/* Hero Image Container with Red Background and iPad Frame */}
+            <div 
+              className="relative w-full"
+              style={{
+                backgroundColor: '#8b0002',
+                height: '362px',
+                borderRadius: '30px 30px 0 0',
+              }}
+            >
+              {/* iPad Frame */}
+              <div 
+                className="absolute overflow-hidden"
+                style={{
+                  top: '-169px',
+                  left: '146px',
+                  right: '147px',
+                  height: '644px',
+                  backgroundColor: 'black',
+                  borderLeft: '2px solid rgba(255, 255, 255, 0.5)',
+                  borderRight: '2px solid rgba(255, 255, 255, 0.5)',
+                  borderTop: '2px solid rgba(255, 255, 255, 0.5)',
+                  borderRadius: '24px',
+                  boxShadow: '0px -4px 20px 0px rgba(0, 0, 0, 0.1)',
                 }}
-              />
+              >
+                {/* Bus Fleet Image Inside iPad */}
+                <img 
+                  src="/images/bus-fleet.jpg" 
+                  alt="Viofel Bus Fleet" 
+                  className="absolute object-cover"
+                  style={{
+                    left: '9px',
+                    right: '10px',
+                    top: '7px',
+                    width: 'calc(100% - 19px)',
+                    height: 'calc(100% - 7px)',
+                  }}
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&h=600&fit=crop';
+                  }}
+                />
+              </div>
             </div>
-            
-            {/* Right Red Bar */}
-            <div className="w-32 md:w-40 h-56 md:h-64 bg-gradient-to-b from-red-900 to-red-800 rounded-t-3xl flex-shrink-0"></div>
           </div>
         </div>
       </div>
@@ -67,10 +105,8 @@ export default function Welcome({ faqs = [] }) {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {/* Book Your Bus */}
             <div className="flex flex-col">
-              <div className="w-9 h-9 mb-6 flex items-center justify-center">
-                <svg className="w-full h-full text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-                </svg>
+              <div className="w-12 h-12 mb-6 flex items-center justify-center overflow-hidden rounded">
+                <img src="/logos/laptop.jpg" alt="Book Your Bus" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Book Your Bus</h3>
               <p className="text-sm text-gray-600">
@@ -80,10 +116,8 @@ export default function Welcome({ faqs = [] }) {
 
             {/* Ride with Safety */}
             <div className="flex flex-col">
-              <div className="w-11 h-11 mb-6 flex items-center justify-center">
-                <svg className="w-full h-full text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                </svg>
+              <div className="w-12 h-12 mb-6 flex items-center justify-center overflow-hidden rounded">
+                <img src="/logos/secured.jpg" alt="Ride with Safety" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Ride with Safety</h3>
               <p className="text-sm text-gray-600">
@@ -93,10 +127,8 @@ export default function Welcome({ faqs = [] }) {
 
             {/* Arrive with Comfort */}
             <div className="flex flex-col">
-              <div className="w-12 h-12 mb-6 flex items-center justify-center">
-                <svg className="w-full h-full text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M4 9h3V6H4c-1.1 0-2 .9-2 2v3h2V9zm0 4H2v3c0 1.1.9 2 2 2h3v-3H4v-2zm16-7h-3v3h3v2h2V8c0-1.1-.9-2-2-2zm-3 12h3c1.1 0 2-.9 2-2v-3h-2v2h-3v3zM9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
-                </svg>
+              <div className="w-12 h-12 mb-6 flex items-center justify-center overflow-hidden rounded">
+                <img src="/logos/seats.jpg" alt="Arrive with Comfort" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Arrive with Comfort</h3>
               <p className="text-sm text-gray-600">
@@ -106,10 +138,8 @@ export default function Welcome({ faqs = [] }) {
 
             {/* Explore with Ease */}
             <div className="flex flex-col">
-              <div className="w-12 h-12 mb-6 flex items-center justify-center">
-                <svg className="w-full h-full text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/>
-                </svg>
+              <div className="w-12 h-12 mb-6 flex items-center justify-center overflow-hidden rounded">
+                <img src="/logos/bus.jpg" alt="Explore with Ease" className="w-full h-full object-contain" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Explore with Ease</h3>
               <p className="text-sm text-gray-600">
@@ -247,31 +277,56 @@ export default function Welcome({ faqs = [] }) {
 
               <div className="space-y-4">
                 {[
-                  { id: 1, question: 'How can I book a ticket?' },
-                  { id: 2, question: 'What safety measures does Viofel provide for passengers?' },
-                  { id: 3, question: 'What routes does Viofel Transport operate?' },
-                  { id: 4, question: 'What payment methods are accepted?' }
+                  { 
+                    id: 1, 
+                    question: 'How can I book a ticket?',
+                    answer: 'You can book a ticket by visiting our Reserve page, selecting your trip type, entering your pick-up location and destination, and filling out your personal details. After submission, our team will contact you to confirm your booking.'
+                  },
+                  { 
+                    id: 2, 
+                    question: 'What safety measures does Viofel provide for passengers?',
+                    answer: 'We prioritize passenger safety with regular bus maintenance, professional licensed drivers, GPS tracking on all vehicles, comprehensive insurance coverage, and strict adherence to traffic regulations. All buses undergo safety inspections before each trip.'
+                  },
+                  { 
+                    id: 3, 
+                    question: 'What routes does Viofel Transport operate?',
+                    answer: 'Viofel Transport operates various routes throughout the Philippines, specializing in tour packages to popular destinations. We also offer custom routes for group tours and private charters. Contact us for specific route inquiries.'
+                  },
+                  { 
+                    id: 4, 
+                    question: 'What payment methods are accepted?',
+                    answer: 'We accept multiple payment methods including cash, bank transfer, GCash, Maya, and credit/debit cards. A deposit may be required to confirm your booking, with the remaining balance due before departure.'
+                  }
                 ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setExpandedFaq(expandedFaq === item.id ? null : item.id)}
-                    className="w-full flex items-center justify-between p-5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm font-semibold text-gray-500">
-                        {String(item.id).padStart(2, '0')}
-                      </span>
-                      <span className="text-lg text-gray-900">{item.question}</span>
-                    </div>
-                    <svg 
-                      className={`w-10 h-10 text-gray-400 transition-transform ${expandedFaq === item.id ? 'rotate-90' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
+                  <div key={item.id} className="bg-gray-50 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedFaq(expandedFaq === item.id ? null : item.id)}
+                      className="w-full flex items-center justify-between p-5 hover:bg-gray-100 transition-colors text-left"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-semibold text-gray-500">
+                          {String(item.id).padStart(2, '0')}
+                        </span>
+                        <span className="text-lg text-gray-900">{item.question}</span>
+                      </div>
+                      <svg 
+                        className={`w-10 h-10 text-gray-400 transition-transform duration-300 ${expandedFaq === item.id ? 'rotate-90' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    {/* Dropdown Answer */}
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ${expandedFaq === item.id ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}
+                    >
+                      <div className="px-5 pb-5 pl-14 text-gray-600">
+                        {item.answer}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

@@ -55,7 +55,7 @@
                 @endif
 
                 <!-- Delete Button -->
-                <form action="{{ route('inquiries.destroy', $inquiry->message_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this inquiry?');">
+                <form action="{{ route('admin.inquiries.destroy', $inquiry->message_id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this inquiry?');">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="delete-btn">Delete</button>
