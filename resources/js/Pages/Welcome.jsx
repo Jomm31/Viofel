@@ -23,69 +23,58 @@ export default function Welcome({ faqs = [] }) {
       <Head title="Welcome to Viofel Transport" />
       
       {/* Hero Section */}
-      <div className="relative bg-white">
-        <div className="max-w-7xl mx-auto px-1 sm:px-1 lg:px-1" style={{ paddingTop: '30px', paddingBottom: '0' }}>
-          {/* Header Container - 701px total height with overflow hidden to cut bottom */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '210px', height: '591px', overflow: 'hidden' }}>
+      <div className="relative bg-white pb-0 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header Container */}
+          <div className="flex flex-col gap-24 md:gap-40 lg:gap-[210px] relative h-auto min-h-[500px] lg:h-[591px]">
             {/* Title */}
             <h1 
-              className="text-center text-black"
+              className="text-center text-black font-normal relative z-10"
               style={{
                 fontFamily: 'Crimson Text, serif',
-                fontSize: '124px',
-                lineHeight: '0.9',
-                letterSpacing: '-2.72px',
-                height: '137px',
-                fontWeight: 400,
-                margin: 0,
+                lineHeight: '1.1',
+                letterSpacing: '-0.02em',
+
               }}
             >
-              Ready to Explore
+              <span className="text-4xl sm:text-5xl md:text-8xl lg:text-[124px] block">Ready to Explore</span>
             </h1>
 
-            {/* Hero Image Container with Red Background and iPad Frame */}
-            <div 
-              className="relative w-full"
-              style={{
-                backgroundColor: '#8b0002',
-                height: '362px',
-                borderRadius: '30px 30px 0 0',
-              }}
-            >
-              {/* iPad Frame */}
-              <div 
-                className="absolute overflow-hidden"
-                style={{
-                  top: '-169px',
-                  left: '146px',
-                  right: '147px',
-                  height: '644px',
-                  backgroundColor: 'black',
-                  borderLeft: '2px solid rgba(255, 255, 255, 0.5)',
-                  borderRight: '2px solid rgba(255, 255, 255, 0.5)',
-                  borderTop: '2px solid rgba(255, 255, 255, 0.5)',
-                  borderRadius: '24px',
-                  boxShadow: '0px -4px 20px 0px rgba(0, 0, 0, 0.1)',
-                }}
+            {/* Reservation Button */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 z-10 top-[150px] md:top-[200px] lg:top-[280px] w-full text-center">
+              <a 
+                href="/reserve"
+                className="bg-red-900 hover:bg-red-800 text-white px-8 py-3 md:px-12 md:py-4 rounded-full text-base md:text-lg font-semibold transition duration-200 shadow-lg inline-block whitespace-nowrap"
               >
-                {/* Bus Fleet Image Inside iPad */}
-                <img 
-                  src="/images/bus-fleet.jpg" 
-                  alt="Viofel Bus Fleet" 
-                  className="absolute object-cover"
-                  style={{
-                    left: '9px',
-                    right: '10px',
-                    top: '7px',
-                    width: 'calc(100% - 19px)',
-                    height: 'calc(100% - 7px)',
-                  }}
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&h=600&fit=crop';
-                  }}
-                />
-              </div>
+                Reserve Now
+              </a>
             </div>
+
+            {/* Placeholder to push container height on mobile */}
+            <div className="h-[200px] md:h-[300px] lg:hidden w-full"></div>
+
+            {/* Hero Image Container with Red Background and iPad Frame */}
+             <div 
+              className="absolute w-full bottom-0 left-0 right-0 bg-[#8b0002] rounded-t-[30px] h-[250px] md:h-[300px] lg:h-[262px]"
+            >
+               {/* iPad Frame - Responsive Positioning */}
+               <div 
+                  className="absolute bg-black border-2 border-white/50 rounded-xl md:rounded-[24px] shadow-xl overflow-hidden
+                             left-4 right-4 top-[-60px] h-[300px]
+                             md:left-[80px] md:right-[80px] md:top-[-100px] md:h-[450px]
+                             lg:left-[146px] lg:right-[147px] lg:top-[-169px] lg:h-[644px]"
+               >
+                  <img 
+                    src="/images/bus-fleet.jpg" 
+                    alt="Viofel Bus Fleet" 
+                    className="w-full h-full object-cover p-1 md:p-2 rounded-xl md:rounded-[22px]"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&h=600&fit=crop';
+                    }}
+                  />
+               </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -94,7 +83,7 @@ export default function Welcome({ faqs = [] }) {
       <div className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16">
-            <h2 className="text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
               Enjoy Traveling with Viofel
             </h2>
             <p className="text-lg text-gray-600">
@@ -153,7 +142,7 @@ export default function Welcome({ faqs = [] }) {
       {/* Our Fleet Section */}
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">Our Fleet</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-16">Our Fleet</h2>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Coaster Bus Card */}
@@ -180,7 +169,7 @@ export default function Welcome({ faqs = [] }) {
       {/* Contact Us Section */}
       <div className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-5xl font-bold text-gray-900 mb-16">Customer Support - Contact Us</h2>
+          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-16">Customer Support - Contact Us</h2>
           
           <div className="grid md:grid-cols-2 gap-12">
             {/* Contact Form */}
@@ -272,7 +261,7 @@ export default function Welcome({ faqs = [] }) {
           <div className="grid md:grid-cols-2 gap-12">
             {/* FAQ List */}
             <div>
-              <h2 className="text-5xl font-bold text-gray-900 mb-4">Customer Support - FAQ</h2>
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Customer Support - FAQ</h2>
               <p className="text-lg text-gray-600 mb-12">Most Important & Frequent Ask Questions</p>
 
               <div className="space-y-4">

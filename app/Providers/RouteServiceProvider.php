@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Reservation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -27,6 +28,12 @@ class RouteServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->configureRateLimiting();
+
+        // Custom route model binding for Reservation
+        Route::model('reservation', Reservation::class);
+        Route::bind('reservation', function ($value) {
+            return Reservation::where('reservation_id', $value)->firstOrFail();
+        });
 
         $this->routes(function () {
             Route::middleware('api')
