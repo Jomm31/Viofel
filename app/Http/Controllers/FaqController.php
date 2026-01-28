@@ -4,13 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Faq;
+use Inertia\Inertia;
 
 class FaqController extends Controller
 {
     public function index()
     {
         $faqs = Faq::all();
-        return view('admin.FAQs', compact('faqs'));
+        return Inertia::render('Admin/Faqs', [
+            'faqs' => $faqs
+        ]);
     }
 
     public function store(Request $request)

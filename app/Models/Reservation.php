@@ -58,6 +58,22 @@ class Reservation extends Model
     }
 
     /**
+     * Get the calculated cost for the reservation.
+     */
+    public function calculatedCost()
+    {
+        return $this->hasOne(CalculatedCost::class, 'reservation_id', 'reservation_id');
+    }
+
+    /**
+     * Get the bus assigned to the reservation.
+     */
+    public function bus()
+    {
+        return $this->belongsTo(Bus::class, 'bus_id', 'bus_id');
+    }
+
+    /**
      * Get the reference number for this reservation.
      */
     public function getReferenceNumberAttribute()

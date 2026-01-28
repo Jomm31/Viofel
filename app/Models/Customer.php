@@ -23,6 +23,7 @@ class Customer extends Model
         'phone',
         'address',
         'valid_id',
+        'valid_id_path',
     ];
 
     /**

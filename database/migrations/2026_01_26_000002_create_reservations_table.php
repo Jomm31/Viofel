@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('travel_options'); // One Way, Full Day, Overnight, Multi-Day Tour
             $table->dateTime('departure_time');
             $table->dateTime('arrival_time')->nullable();
-            $table->string('status')->default('pending'); // pending, confirmed, completed, cancelled
+            $table->string('status')->default('not_paid'); // not_paid, pending, confirmed, completed, cancelled
             $table->timestamps();
 
             $table->foreign('customer_id')->references('customer_id')->on('customers')->onDelete('cascade');

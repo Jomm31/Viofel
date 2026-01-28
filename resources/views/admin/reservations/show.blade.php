@@ -161,6 +161,38 @@
                         <label>Valid ID</label>
                         <p>{{ $reservation->customer->valid_id ?? 'N/A' }}</p>
                     </div>
+                    @if($reservation->customer->valid_id_path)
+                    <div class="detail-item" style="grid-column: span 2;">
+                        <label>Valid ID Image</label>
+                        <div style="margin-top: 0.5rem;">
+                            <a href="{{ asset('storage/' . $reservation->customer->valid_id_path) }}" target="_blank" style="display: inline-block;">
+                                <img 
+                                    src="{{ asset('storage/' . $reservation->customer->valid_id_path) }}" 
+                                    alt="Valid ID" 
+                                    style="max-width: 300px; height: auto; border-radius: 8px; border: 2px solid #e5e7eb; cursor: pointer;"
+                                >
+                            </a>
+                            <div style="margin-top: 0.5rem;">
+                                <a 
+                                    href="{{ asset('storage/' . $reservation->customer->valid_id_path) }}" 
+                                    download 
+                                    class="action-btn" 
+                                    style="background: #6b7280; color: white; padding: 0.5rem 1rem; font-size: 0.85rem; margin-right: 0.5rem;"
+                                >
+                                    Download
+                                </a>
+                                <a 
+                                    href="{{ asset('storage/' . $reservation->customer->valid_id_path) }}" 
+                                    target="_blank" 
+                                    class="action-btn" 
+                                    style="background: #3b82f6; color: white; padding: 0.5rem 1rem; font-size: 0.85rem;"
+                                >
+                                    View Full Size
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
             

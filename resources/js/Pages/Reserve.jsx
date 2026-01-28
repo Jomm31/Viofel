@@ -9,6 +9,8 @@ export default function Reserve() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [errors, setErrors] = useState({});
+  const [validIdImage, setValidIdImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   
   const [data, setFormData] = useState({
     travel_options: '',
@@ -22,11 +24,22 @@ export default function Reserve() {
     email: '',
     phone: '',
     address: '',
-    valid_id: '',
   });
 
   const setData = (key, value) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setValidIdImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -35,7 +48,25 @@ export default function Reserve() {
     setErrors({});
 
     try {
-      const response = await axios.post('/api/reservations', data);
+      const formData = new FormData();
+      
+      // Append all text fields
+      Object.keys(data).forEach(key => {
+        if (data[key]) {
+          formData.append(key, data[key]);
+        }
+      });
+      
+      // Append file if exists
+      if (validIdImage) {
+        formData.append('valid_id_image', validIdImage);
+      }
+
+      const response = await axios.post('/api/reservations', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       
       if (response.data.success) {
         setReferenceNumber(response.data.reference_number);
@@ -289,15 +320,50 @@ export default function Reserve() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-lg font-medium text-gray-700 mb-2">Valid ID Number (Optional)</label>
-                  <input
-                    type="text"
-                    value={data.valid_id}
-                    onChange={e => setData('valid_id', e.target.value)}
-                    placeholder="Enter your ID number (e.g., Driver's License, Passport)"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                  {errors.valid_id && <div className="text-red-600 text-sm mt-1">{errors.valid_id}</div>}
+                  <label className="block text-lg font-medium text-gray-700 mb-2">Valid ID Image</label>
+                  <div className="space-y-4">
+                    {/* Preview Area */}
+                    {previewUrl && (
+                      <div className="relative">
+                        <img 
+                          src={previewUrl} 
+                          alt="Valid ID Preview" 
+                          className="w-full max-w-md h-auto rounded-lg border-2 border-gray-300"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Upload Button */}
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-3 px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer transition-colors border-2 border-gray-300">
+                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-gray-700 font-medium">
+                          {validIdImage ? 'Change Image' : 'Upload Valid ID Image'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg,image/gif"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {validIdImage && (
+                        <span className="text-sm text-gray-600">
+                          {validIdImage.name}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {errors.valid_id_image && (
+                      <div className="text-red-600 text-sm">{errors.valid_id_image}</div>
+                    )}
+                    
+                    <p className="text-sm text-gray-500">
+                      Accepted formats: JPEG, PNG, JPG, GIF (Max 2MB)
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

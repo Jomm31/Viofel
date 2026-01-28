@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class ReservationController extends Controller
 {
@@ -37,7 +38,7 @@ class ReservationController extends Controller
 
         $reservations = $query->paginate(15);
 
-        return view('admin.reservations.index', [
+        return Inertia::render('Admin/Reservations', [
             'reservations' => $reservations,
             'currentStatus' => $request->status ?? 'all',
             'search' => $request->search ?? '',
@@ -51,7 +52,7 @@ class ReservationController extends Controller
     {
         $reservation->load(['customer', 'bookingReference']);
 
-        return view('admin.reservations.show', [
+        return Inertia::render('Admin/ReservationShow', [
             'reservation' => $reservation,
         ]);
     }

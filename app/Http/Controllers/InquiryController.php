@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Inquiry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class InquiryController extends Controller
 {
@@ -43,7 +44,9 @@ class InquiryController extends Controller
     public function index()
     {
         $inquiries = Inquiry::latest()->get(); // latest first
-        return view('admin.inquiries', compact('inquiries'));
+        return Inertia::render('Admin/Inquiries', [
+            'inquiries' => $inquiries
+        ]);
     }
 
     public function destroy($message_id)
