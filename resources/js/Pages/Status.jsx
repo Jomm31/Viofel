@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '../Components/Layout/AppLayout';
 import axios from 'axios';
 
+/**
+ * Status Page Component
+ * 
+ * Displays booking status and handles:
+ * - Reservation lookup by reference number
+ * - PayMongo payment integration
+ * - Invoice display
+ * - Refund requests
+ * 
+ * Security: Input validation, error handling, CSRF protection via axios
+ */
 export default function Status() {
   const [showDetails, setShowDetails] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
@@ -13,9 +24,12 @@ export default function Status() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [refundReason, setRefundReason] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [editFormData, setEditFormData] = useState({
     full_name: '',
     email: '',
@@ -29,6 +43,40 @@ export default function Status() {
     estimated_passengers: '',
     travel_options: '',
   });
+
+  // Check for payment success/failure on page load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const payment = urlParams.get('payment');
+    const ref = urlParams.get('reference');
+    const errorParam = urlParams.get('error');
+
+    if (payment === 'success' && ref) {
+      setPaymentSuccess(true);
+      setReferenceNumber(ref);
+      // Auto-lookup the reservation
+      lookupReservation(ref);
+    }
+
+    if (errorParam) {
+      setError('Payment processing failed. Please try again.');
+    }
+  }, []);
+
+  const lookupReservation = async (ref) => {
+    try {
+      const response = await axios.post('/api/reservations/lookup', {
+        reference_number: ref,
+      });
+      
+      if (response.data.success) {
+        setBookingDetails(response.data.reservation);
+        setShowDetails(true);
+      }
+    } catch (err) {
+      console.error('Lookup error:', err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,9 +240,19 @@ export default function Status() {
     setShowPaymentModal(true);
   };
 
+  /**
+   * Process payment via PayMongo checkout
+   * Validates payment method and redirects to PayMongo
+   */
   const confirmPayment = async () => {
+    // Input validation
     if (!paymentMethod) {
       alert('Please select a payment method');
+      return;
+    }
+
+    if (!bookingDetails?.id) {
+      alert('Invalid booking details. Please refresh and try again.');
       return;
     }
 
@@ -202,27 +260,57 @@ export default function Status() {
     setError('');
     
     try {
-      const response = await axios.post(`/api/payments/${bookingDetails.id}/process`, {
-        payment_method: paymentMethod
-      });
-      
-      if (response.data.success) {
-        setShowPaymentModal(false);
-        setPaymentMethod('');
-        // Refresh booking details
-        const lookupResponse = await axios.post('/api/reservations/lookup', {
-          reference_number: referenceNumber,
+      // For PayMongo-supported methods, create checkout session
+      if (['gcash', 'grab_pay', 'card', 'paymaya'].includes(paymentMethod)) {
+        const response = await axios.post(`/api/payments/${bookingDetails.id}/checkout`, {
+          payment_method: paymentMethod
         });
-        if (lookupResponse.data.success) {
-          setBookingDetails(lookupResponse.data.reservation);
+        
+        if (response.data.success && response.data.checkout_url) {
+          // Redirect to PayMongo checkout
+          window.location.href = response.data.checkout_url;
+          return;
         }
-        alert('Payment processed successfully! Your reservation is now pending confirmation.');
+      } else {
+        // For other methods (bank transfer, cash), use manual process
+        const response = await axios.post(`/api/payments/${bookingDetails.id}/process`, {
+          payment_method: paymentMethod
+        });
+        
+        if (response.data.success) {
+          setShowPaymentModal(false);
+          setPaymentMethod('');
+          // Refresh booking details
+          const lookupResponse = await axios.post('/api/reservations/lookup', {
+            reference_number: referenceNumber,
+          });
+          if (lookupResponse.data.success) {
+            setBookingDetails(lookupResponse.data.reservation);
+          }
+          alert('Payment marked as pending! Please complete your payment and wait for admin confirmation.');
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to process payment. Please try again.');
+      console.error('Payment error:', err);
+      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to process payment. Please try again.');
       setShowPaymentModal(false);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  /**
+   * View invoice details
+   */
+  const handleViewInvoice = async () => {
+    try {
+      const response = await axios.get(`/api/reservations/${bookingDetails.id}/invoice`);
+      if (response.data.success) {
+        setInvoiceData(response.data.invoice);
+        setShowInvoiceModal(true);
+      }
+    } catch (err) {
+      alert('No invoice found for this reservation.');
     }
   };
 
@@ -433,7 +521,13 @@ export default function Status() {
                 </div>
               )}
               {(bookingDetails.status === 'pending' || bookingDetails.status === 'confirmed') && (
-                <div className="flex gap-4 justify-center mb-6">
+                <div className="flex gap-4 justify-center mb-6 flex-wrap">
+                  <button
+                    onClick={handleViewInvoice}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
+                  >
+                    📄 View Invoice
+                  </button>
                   <button
                     onClick={handleRefundClick}
                     className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
@@ -801,12 +895,12 @@ export default function Status() {
         </div>
       )}
 
-      {/* Payment Modal */}
+      {/* Payment Modal with PayMongo Integration */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-xl">
             <div className="flex justify-between items-start mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Payment</h3>
+              <h3 className="text-2xl font-bold text-gray-900">💳 Pay Now</h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -815,15 +909,16 @@ export default function Status() {
               </button>
             </div>
             <div className="mb-6">
+              {/* Amount to Pay */}
               <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
                 <p className="text-gray-700 mb-2">
-                  <strong>Partial Payment (Now):</strong>
+                  <strong>Amount to Pay:</strong>
                 </p>
                 <p className="text-3xl font-bold text-green-600">
                   ₱{bookingDetails?.partial_payment ? parseFloat(bookingDetails.partial_payment).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                 </p>
                 <p className="text-xs text-green-700 mt-2">
-                  Includes: Bus ({bookingDetails?.bus_type}) + Passengers
+                  Includes: Bus ({bookingDetails?.bus_type}) + {bookingDetails?.estimated_passengers} Passengers
                 </p>
               </div>
               
@@ -832,28 +927,114 @@ export default function Status() {
                   <strong>Estimated Total:</strong> ₱{bookingDetails?.total_cost ? parseFloat(bookingDetails.total_cost).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '0.00'}
                 </p>
                 <p className="text-xs text-gray-500 italic mt-1">
-                  Final amount will be adjusted by admin based on actual fuel & distance costs
+                  Final amount may be adjusted based on actual fuel & distance costs
                 </p>
               </div>
 
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Method
+              {/* Payment Method Selection */}
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select Payment Method
               </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="">Select payment method</option>
-                <option value="gcash">GCash</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="cash">Cash</option>
-                <option value="credit_card">Credit Card</option>
-              </select>
+              
+              {/* Online Payment Options */}
+              <div className="space-y-2 mb-4">
+                <p className="text-xs text-gray-500 font-semibold">ONLINE PAYMENT (Instant)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('gcash')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'gcash' 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-blue-600">GCash</div>
+                    <div className="text-xs text-gray-500">Pay with GCash wallet</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('grab_pay')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'grab_pay' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-green-600">GrabPay</div>
+                    <div className="text-xs text-gray-500">Pay with GrabPay</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('paymaya')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'paymaya' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-green-600">Maya</div>
+                    <div className="text-xs text-gray-500">Pay with Maya</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'card' 
+                        ? 'border-purple-500 bg-purple-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-purple-600">Card</div>
+                    <div className="text-xs text-gray-500">Credit/Debit Card</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Manual Payment Options */}
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 font-semibold">MANUAL PAYMENT (Admin Verification)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('bank_transfer')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'bank_transfer' 
+                        ? 'border-orange-500 bg-orange-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-orange-600">Bank Transfer</div>
+                    <div className="text-xs text-gray-500">Manual verification</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`p-3 border-2 rounded-lg text-left transition-all ${
+                      paymentMethod === 'cash' 
+                        ? 'border-gray-500 bg-gray-100' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="font-semibold text-gray-600">Cash</div>
+                    <div className="text-xs text-gray-500">Pay in person</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Security Notice */}
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-800">
+                  🔒 <strong>Secure Payment:</strong> Online payments are processed securely through PayMongo.
+                </p>
+              </div>
             </div>
             <div className="flex gap-4 justify-end">
               <button
-                onClick={() => setShowPaymentModal(false)}
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPaymentMethod('');
+                }}
                 disabled={processing}
                 className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
               >
@@ -861,10 +1042,10 @@ export default function Status() {
               </button>
               <button
                 onClick={confirmPayment}
-                disabled={processing}
+                disabled={processing || !paymentMethod}
                 className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
               >
-                {processing ? 'Processing...' : 'Confirm Payment'}
+                {processing ? 'Processing...' : `Pay ₱${bookingDetails?.partial_payment ? parseFloat(bookingDetails.partial_payment).toLocaleString('en-PH') : '0'}`}
               </button>
             </div>
           </div>
@@ -915,6 +1096,105 @@ export default function Status() {
                 {processing ? 'Submitting...' : 'Submit Refund Request'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoiceModal && invoiceData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-xl">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">📄 Invoice</h3>
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Invoice Header */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-sm text-gray-500">Invoice Number</p>
+                    <p className="font-bold text-lg">{invoiceData.invoice_number}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold ${
+                      invoiceData.status === 'paid' ? 'bg-green-100 text-green-800' :
+                      invoiceData.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      invoiceData.status === 'refunded' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {invoiceData.status?.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="border-t border-b py-4">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Amount Paid</span>
+                  <span className="font-semibold">₱{parseFloat(invoiceData.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Payment Method</span>
+                  <span className="font-semibold capitalize">{invoiceData.payment_method || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Issue Date</span>
+                  <span className="font-semibold">{invoiceData.issued_at ? new Date(invoiceData.issued_at).toLocaleDateString() : 'N/A'}</span>
+                </div>
+                {invoiceData.paid_at && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Paid Date</span>
+                    <span className="font-semibold">{new Date(invoiceData.paid_at).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* PayMongo Info */}
+              {invoiceData.paymongo_payment_id && (
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    <strong>Transaction ID:</strong> {invoiceData.paymongo_payment_id}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Success Banner */}
+      {paymentSuccess && (
+        <div className="fixed top-0 left-0 right-0 bg-green-600 text-white py-4 z-50">
+          <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Payment successful! Your reservation is now pending confirmation.</span>
+            </div>
+            <button
+              onClick={() => setPaymentSuccess(false)}
+              className="text-white hover:text-gray-200"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}

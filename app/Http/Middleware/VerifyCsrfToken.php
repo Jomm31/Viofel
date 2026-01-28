@@ -8,10 +8,12 @@ class VerifyCsrfToken extends Middleware
 {
     /**
      * The URIs that should be excluded from CSRF verification.
+     * 
+     * PayMongo webhook needs to be excluded as it comes from external service
      *
      * @var array<int, string>
      */
     protected $except = [
-        //
+        'webhooks/paymongo',
     ];
 }

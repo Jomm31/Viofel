@@ -53,7 +53,14 @@ Route::prefix('api')->group(function () {
     Route::post('/payments/{reservation}/process', [PaymentController::class, 'processPayment'])->name('payments.process');
     Route::post('/refunds/{invoice}/request', [PaymentController::class, 'requestRefund'])->name('refunds.request');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'generateInvoice'])->name('invoices.generate');
+    
+    // PayMongo checkout routes
+    Route::post('/payments/{reservation}/checkout', [PaymentController::class, 'createCheckout'])->name('payments.checkout');
 });
+
+// PayMongo callback routes (accessible without auth)
+Route::get('/payments/success', [PaymentController::class, 'paymentSuccess'])->name('payments.success');
+Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook'])->name('webhooks.paymongo');
 
 // Admin routes (TODO: Add authentication middleware when needed)
 Route::prefix('admin')->name('admin.')->group(function () {
