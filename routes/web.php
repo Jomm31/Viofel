@@ -91,7 +91,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Pricing Management routes
     Route::get('/pricing', [PricingController::class, 'index'])->name('pricing');
     Route::post('/pricing/fuel-price', [PricingController::class, 'updateFuelPrice'])->name('pricing.fuel-price');
-    Route::post('/pricing/adjust/{reservation}', [PricingController::class, 'adjustReservationCost'])->name('pricing.adjust');
+    Route::post('/pricing/adjust/{id}', [PricingController::class, 'adjustReservationCost'])->name('pricing.adjust');
 
     // Payment & Invoice routes
     Route::get('/paid-clients', [PaymentController::class, 'paidClients'])->name('paid-clients');

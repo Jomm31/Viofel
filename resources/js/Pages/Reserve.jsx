@@ -73,10 +73,13 @@ export default function Reserve() {
         setShowSuccess(true);
       }
     } catch (error) {
+      console.error('Reservation error:', error);
+      console.error('Error response:', error.response);
       if (error.response?.status === 422) {
         setErrors(error.response.data.errors || {});
       } else {
-        alert('Failed to create reservation. Please try again.');
+        const errorMsg = error.response?.data?.error || error.response?.data?.message || error.message;
+        alert('Failed to create reservation: ' + errorMsg);
       }
     } finally {
       setProcessing(false);
