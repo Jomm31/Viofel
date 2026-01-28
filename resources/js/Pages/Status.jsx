@@ -270,6 +270,11 @@ export default function Status() {
           // Redirect to PayMongo checkout
           window.location.href = response.data.checkout_url;
           return;
+        } else {
+          // Show error if checkout creation failed
+          setError(response.data.error || 'Failed to create payment checkout. Please try again.');
+          setProcessing(false);
+          return;
         }
       } else {
         // For other methods (bank transfer, cash), use manual process
@@ -909,6 +914,13 @@ export default function Status() {
               </button>
             </div>
             <div className="mb-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+              
               {/* Amount to Pay */}
               <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
                 <p className="text-gray-700 mb-2">

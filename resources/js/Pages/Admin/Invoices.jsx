@@ -110,13 +110,6 @@ export default function Invoices({ invoices = [] }) {
         setShowDetailModal(true);
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-PH', {
-            style: 'currency',
-            currency: 'PHP'
-        }).format(amount);
-    };
-
     return (
         <AdminLayout title="Invoices">
             <div className="p-6">
