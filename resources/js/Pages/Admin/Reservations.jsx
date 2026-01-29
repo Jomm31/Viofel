@@ -119,8 +119,60 @@ export default function Reservations({ reservations, currentStatus, search }) {
         return 'bg-green-100 text-green-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
+      case 'not_paid':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleApproveCancellation = async (id) => {
+    if (confirm('Are you sure you want to approve this cancellation request?')) {
+      try {
+        const response = await fetch(`/admin/reservations/${id}/cancellation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+          },
+          body: JSON.stringify({ action: 'approve' }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert('Cancellation approved successfully!');
+          window.location.reload();
+        } else {
+          alert(data.message || 'Failed to approve cancellation');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred');
+      }
+    }
+  };
+
+  const handleRejectCancellation = async (id) => {
+    if (confirm('Are you sure you want to reject this cancellation request?')) {
+      try {
+        const response = await fetch(`/admin/reservations/${id}/cancellation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+          },
+          body: JSON.stringify({ action: 'reject' }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert('Cancellation rejected successfully!');
+          window.location.reload();
+        } else {
+          alert(data.message || 'Failed to reject cancellation');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred');
+      }
     }
   };
 
@@ -185,6 +237,7 @@ export default function Reservations({ reservations, currentStatus, search }) {
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Date</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Passengers</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Status</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-semibold">Cancellation</th>
                   <th className="text-center py-3 px-4 text-gray-600 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -239,6 +292,39 @@ export default function Reservations({ reservations, currentStatus, search }) {
                         </span>
                       </td>
                       <td className="py-3 px-4">
+                        {reservation.cancellation_reason ? (
+                          <div className="max-w-xs">
+                            <p className="text-xs text-gray-600 truncate" title={reservation.cancellation_reason}>
+                              {reservation.cancellation_reason}
+                            </p>
+                            {reservation.cancellation_status === 'pending_approval' && (
+                              <div className="flex gap-1 mt-1">
+                                <button
+                                  onClick={() => handleApproveCancellation(reservation.reservation_id)}
+                                  className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleRejectCancellation(reservation.reservation_id)}
+                                  className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                            {reservation.cancellation_status === 'approved' && (
+                              <span className="text-xs text-green-600 font-medium">✓ Approved</span>
+                            )}
+                            {reservation.cancellation_status === 'rejected' && (
+                              <span className="text-xs text-red-600 font-medium">✗ Rejected</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => handleSetCostClick(reservation)}
@@ -269,7 +355,7 @@ export default function Reservations({ reservations, currentStatus, search }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" className="text-center py-8 text-gray-500">
+                    <td colSpan="10" className="text-center py-8 text-gray-500">
                       No reservations found.
                     </td>
                   </tr>

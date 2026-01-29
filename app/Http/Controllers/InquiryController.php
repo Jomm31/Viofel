@@ -37,7 +37,7 @@ class InquiryController extends Controller
 
         $inquiry->save();
 
-        return redirect()->route('admin.inquiries')->with('success', 'Inquiry submitted!');
+        return redirect()->back()->with('success', 'Your message has been sent successfully!');
 
     }
 

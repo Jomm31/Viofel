@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, useForm } from '@inertiajs/react';
 import AppLayout from '../Components/Layout/AppLayout';
 
 export default function Welcome({ faqs = [] }) {
   const [expandedFaq, setExpandedFaq] = useState(null);
   
-  const { data, setData, post, processing, errors } = useForm({
+  const { data, setData, post, processing, errors, reset } = useForm({
     name: '',
     email: '',
     contact_number: '',
@@ -13,9 +13,27 @@ export default function Welcome({ faqs = [] }) {
     attachment: null,
   });
 
+  // Handle scrolling to section on page load (when coming from another page)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      setTimeout(() => {
+        const element = document.querySelector(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    post('/inquiries');
+    post('/inquiries', {
+      onSuccess: () => {
+        reset();
+        alert('Your message has been sent successfully!');
+      },
+    });
   };
 
   return (
@@ -167,7 +185,7 @@ export default function Welcome({ faqs = [] }) {
       </div>
 
       {/* Contact Us Section */}
-      <div className="py-20 bg-gray-50">
+      <div id="contact-section" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-16">Customer Support - Contact Us</h2>
           
@@ -256,7 +274,7 @@ export default function Welcome({ faqs = [] }) {
       </div>
 
       {/* FAQ Section */}
-      <div className="py-20 bg-white">
+      <div id="faq-section" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-12">
             {/* FAQ List */}
@@ -265,58 +283,43 @@ export default function Welcome({ faqs = [] }) {
               <p className="text-lg text-gray-600 mb-12">Most Important & Frequent Ask Questions</p>
 
               <div className="space-y-4">
-                {[
-                  { 
-                    id: 1, 
-                    question: 'How can I book a ticket?',
-                    answer: 'You can book a ticket by visiting our Reserve page, selecting your trip type, entering your pick-up location and destination, and filling out your personal details. After submission, our team will contact you to confirm your booking.'
-                  },
-                  { 
-                    id: 2, 
-                    question: 'What safety measures does Viofel provide for passengers?',
-                    answer: 'We prioritize passenger safety with regular bus maintenance, professional licensed drivers, GPS tracking on all vehicles, comprehensive insurance coverage, and strict adherence to traffic regulations. All buses undergo safety inspections before each trip.'
-                  },
-                  { 
-                    id: 3, 
-                    question: 'What routes does Viofel Transport operate?',
-                    answer: 'Viofel Transport operates various routes throughout the Philippines, specializing in tour packages to popular destinations. We also offer custom routes for group tours and private charters. Contact us for specific route inquiries.'
-                  },
-                  { 
-                    id: 4, 
-                    question: 'What payment methods are accepted?',
-                    answer: 'We accept multiple payment methods including cash, bank transfer, GCash, Maya, and credit/debit cards. A deposit may be required to confirm your booking, with the remaining balance due before departure.'
-                  }
-                ].map((item) => (
-                  <div key={item.id} className="bg-gray-50 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedFaq(expandedFaq === item.id ? null : item.id)}
-                      className="w-full flex items-center justify-between p-5 hover:bg-gray-100 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-semibold text-gray-500">
-                          {String(item.id).padStart(2, '0')}
-                        </span>
-                        <span className="text-lg text-gray-900">{item.question}</span>
-                      </div>
-                      <svg 
-                        className={`w-10 h-10 text-gray-400 transition-transform duration-300 ${expandedFaq === item.id ? 'rotate-90' : ''}`}
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
+                {faqs && faqs.length > 0 ? (
+                  faqs.map((item, index) => (
+                    <div key={item.faq_id || index} className="bg-gray-50 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setExpandedFaq(expandedFaq === (item.faq_id || index) ? null : (item.faq_id || index))}
+                        className="w-full flex items-center justify-between p-5 hover:bg-gray-100 transition-colors text-left"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                    {/* Dropdown Answer */}
-                    <div 
-                      className={`overflow-hidden transition-all duration-300 ${expandedFaq === item.id ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}
-                    >
-                      <div className="px-5 pb-5 pl-14 text-gray-600">
-                        {item.answer}
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm font-semibold text-gray-500">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span className="text-lg text-gray-900">{item.question}</span>
+                        </div>
+                        <svg 
+                          className={`w-10 h-10 text-gray-400 transition-transform duration-300 ${expandedFaq === (item.faq_id || index) ? 'rotate-90' : ''}`}
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      {/* Dropdown Answer */}
+                      <div 
+                        className={`overflow-hidden transition-all duration-300 ${expandedFaq === (item.faq_id || index) ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}
+                      >
+                        <div className="px-5 pb-5 pl-14 text-gray-600">
+                          {item.answer}
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500 text-center py-8">
+                    No FAQs available at the moment.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -325,6 +328,50 @@ export default function Welcome({ faqs = [] }) {
               <div className="w-full h-96 bg-gray-100 rounded-2xl flex items-center justify-center">
                 <p className="text-gray-500">FAQ illustration or image</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* About Us Section */}
+      <div id="about-section" className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">About Us</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              Viofel Transport is a trusted bus rental service providing safe, comfortable, and reliable transportation for tours, events, and group travel across the Philippines.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Our Mission</h3>
+              <p className="text-gray-600">To provide exceptional transportation services that exceed customer expectations through safety, comfort, and reliability.</p>
+            </div>
+            
+            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Our Team</h3>
+              <p className="text-gray-600">Professional, licensed drivers and friendly staff dedicated to making your journey memorable and stress-free.</p>
+            </div>
+            
+            <div className="bg-white rounded-xl p-8 shadow-lg text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Why Choose Us</h3>
+              <p className="text-gray-600">Modern fleet, competitive pricing, 24/7 customer support, and a track record of satisfied customers.</p>
             </div>
           </div>
         </div>

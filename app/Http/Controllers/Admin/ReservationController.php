@@ -85,4 +85,37 @@ class ReservationController extends Controller
         return redirect()->route('admin.reservations.index')
             ->with('success', 'Reservation deleted successfully!');
     }
+
+    /**
+     * Handle cancellation approval/rejection.
+     */
+    public function handleCancellation(Request $request, Reservation $reservation)
+    {
+        $validated = $request->validate([
+            'action' => 'required|in:approve,reject',
+        ]);
+
+        if ($validated['action'] === 'approve') {
+            $reservation->update([
+                'status' => 'cancelled',
+                'cancellation_status' => 'approved',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cancellation approved successfully.',
+            ]);
+        } else {
+            $reservation->update([
+                'cancellation_reason' => null,
+                'cancelled_at' => null,
+                'cancellation_status' => 'rejected',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cancellation rejected. Reservation has been restored.',
+            ]);
+        }
+    }
 }

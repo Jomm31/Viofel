@@ -1,27 +1,41 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Components/AdminLayout';
+import { router } from '@inertiajs/react';
 
 export default function Faqs({ faqs }) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editQuestion, setEditQuestion] = useState('');
+  const [editAnswer, setEditAnswer] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const form = new FormData();
-    form.append('question', question);
-    form.append('answer', answer);
+    setProcessing(true);
 
     fetch('/admin/faqs', {
       method: 'POST',
-      body: form,
+      body: JSON.stringify({ question, answer }),
       headers: {
+        'Content-Type': 'application/json',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json',
       },
     })
       .then((response) => response.json())
-      .then(() => {
-        window.location.reload();
-      });
+      .then((data) => {
+        if (data.success) {
+          setQuestion('');
+          setAnswer('');
+          router.reload();
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        alert('Failed to add FAQ');
+      })
+      .finally(() => setProcessing(false));
   };
 
   const handleDelete = (id) => {
@@ -30,11 +44,60 @@ export default function Faqs({ faqs }) {
         method: 'DELETE',
         headers: {
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+          'Accept': 'application/json',
         },
-      }).then(() => {
-        window.location.reload();
-      });
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success) {
+            router.reload();
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+          alert('Failed to delete FAQ');
+        });
     }
+  };
+
+  const handleEdit = (faq) => {
+    setEditingId(faq.faq_id);
+    setEditQuestion(faq.question);
+    setEditAnswer(faq.answer);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditQuestion('');
+    setEditAnswer('');
+  };
+
+  const handleUpdate = (id) => {
+    setProcessing(true);
+
+    fetch(`/admin/faqs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ question: editQuestion, answer: editAnswer }),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json',
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          setEditingId(null);
+          setEditQuestion('');
+          setEditAnswer('');
+          router.reload();
+        }
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        alert('Failed to update FAQ');
+      })
+      .finally(() => setProcessing(false));
   };
 
   return (
@@ -103,30 +166,73 @@ export default function Faqs({ faqs }) {
               <tbody>
                 {faqs && faqs.length > 0 ? (
                   faqs.map((faq) => (
-                    <tr key={faq.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 text-blue-600 font-semibold">#{faq.id}</td>
-                      <td className="py-3 px-4 text-gray-700">{faq.question}</td>
-                      <td className="py-3 px-4 text-gray-700">{faq.answer}</td>
+                    <tr key={faq.faq_id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 text-blue-600 font-semibold">#{faq.faq_id}</td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {editingId === faq.faq_id ? (
+                          <input
+                            type="text"
+                            value={editQuestion}
+                            onChange={(e) => setEditQuestion(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          faq.question
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {editingId === faq.faq_id ? (
+                          <textarea
+                            value={editAnswer}
+                            onChange={(e) => setEditAnswer(e.target.value)}
+                            rows="3"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          faq.answer
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2 justify-center">
-                          <a
-                            href={`/admin/faqs/${faq.id}/edit`}
-                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors flex items-center gap-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                          </a>
-                          <button
-                            onClick={() => handleDelete(faq.id)}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors flex items-center gap-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </button>
+                          {editingId === faq.faq_id ? (
+                            <>
+                              <button
+                                onClick={() => handleUpdate(faq.faq_id)}
+                                disabled={processing}
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                              >
+                                {processing ? 'Saving...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                disabled={processing}
+                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors flex items-center gap-1 disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(faq)}
+                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors flex items-center gap-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(faq.faq_id)}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors flex items-center gap-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

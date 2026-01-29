@@ -30,6 +30,7 @@ export default function Status() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
   const [editFormData, setEditFormData] = useState({
     full_name: '',
     email: '',
@@ -216,20 +217,33 @@ export default function Status() {
   };
 
   const confirmCancel = async () => {
+    if (!cancellationReason.trim()) {
+      alert('Please provide a reason for cancellation');
+      return;
+    }
+
     setProcessing(true);
     setError('');
     
     try {
-      const response = await axios.delete(`/api/reservations/${bookingDetails.id}`);
+      const response = await axios.delete(`/api/reservations/${bookingDetails.id}`, {
+        data: { cancellation_reason: cancellationReason }
+      });
       
       if (response.data.success) {
         setShowCancelModal(false);
-        setShowDetails(false);
-        setBookingDetails(null);
-        alert('Reservation cancelled successfully!');
+        setCancellationReason('');
+        // Refresh booking details
+        const lookupResponse = await axios.post('/api/reservations/lookup', {
+          reference_number: referenceNumber,
+        });
+        if (lookupResponse.data.success) {
+          setBookingDetails(lookupResponse.data.reservation);
+        }
+        alert(response.data.message || 'Cancellation request submitted! Please wait for admin approval.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to cancel reservation. Please try again.');
+      setError(err.response?.data?.message || 'Failed to submit cancellation request. Please try again.');
       setShowCancelModal(false);
     } finally {
       setProcessing(false);
@@ -262,17 +276,24 @@ export default function Status() {
     try {
       // For PayMongo-supported methods, create checkout session
       if (['gcash', 'grab_pay', 'card', 'paymaya'].includes(paymentMethod)) {
+        console.log('Creating checkout for reservation:', bookingDetails.id, 'Payment method:', paymentMethod);
+        
         const response = await axios.post(`/api/payments/${bookingDetails.id}/checkout`, {
           payment_method: paymentMethod
         });
         
+        console.log('Checkout response:', response.data);
+        
         if (response.data.success && response.data.checkout_url) {
           // Redirect to PayMongo checkout
+          console.log('Redirecting to:', response.data.checkout_url);
           window.location.href = response.data.checkout_url;
           return;
         } else {
           // Show error if checkout creation failed
-          setError(response.data.error || 'Failed to create payment checkout. Please try again.');
+          const errorMsg = response.data.error || response.data.message || 'Failed to create payment checkout. Please try again.';
+          console.error('Checkout creation failed:', errorMsg);
+          setError(errorMsg);
           setProcessing(false);
           return;
         }
@@ -297,8 +318,9 @@ export default function Status() {
       }
     } catch (err) {
       console.error('Payment error:', err);
-      setError(err.response?.data?.message || err.response?.data?.error || 'Failed to process payment. Please try again.');
-      setShowPaymentModal(false);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to process payment. Please try again.';
+      setError(errorMessage);
+      // Don't close the modal so user can see the error
     } finally {
       setProcessing(false);
     }
@@ -871,18 +893,37 @@ export default function Status() {
             <div className="flex justify-between items-start mb-6">
               <h3 className="text-2xl font-bold text-gray-900">Cancel Reservation</h3>
               <button
-                onClick={() => setShowCancelModal(false)}
+                onClick={() => { setShowCancelModal(false); setCancellationReason(''); }}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
               >
                 ×
               </button>
             </div>
-            <p className="text-gray-600 text-lg mb-8">
-              Are you sure you want to cancel this reservation?
+            <p className="text-gray-600 text-lg mb-4">
+              Please provide a reason for cancelling this reservation:
             </p>
+            
+            <div className="mb-6">
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Enter your reason for cancellation..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+              <p className="text-yellow-800 text-sm">
+                <strong>Note:</strong> Your cancellation request will be reviewed by our admin team. 
+                You will be notified once it's approved or rejected.
+              </p>
+            </div>
+
             <div className="flex gap-4 justify-end">
               <button
-                onClick={() => setShowCancelModal(false)}
+                onClick={() => { setShowCancelModal(false); setCancellationReason(''); }}
                 disabled={processing}
                 className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
               >
@@ -890,10 +931,10 @@ export default function Status() {
               </button>
               <button
                 onClick={confirmCancel}
-                disabled={processing}
-                className="bg-[#dfecc6] hover:bg-[#cfe0b0] text-black px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
+                disabled={processing || !cancellationReason.trim()}
+                className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
               >
-                {processing ? 'Cancelling...' : 'Confirm Cancel'}
+                {processing ? 'Submitting...' : 'Submit Cancellation'}
               </button>
             </div>
           </div>

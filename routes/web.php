@@ -19,9 +19,12 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Home page with React
+// Home page with React - load FAQs from database
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    $faqs = \App\Models\Faq::all();
+    return Inertia::render('Welcome', [
+        'faqs' => $faqs
+    ]);
 })->name('homepage');
 
 // Reserve page
@@ -86,6 +89,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/reservations', [AdminReservationController::class, 'index'])->name('reservations.index');
     Route::get('/reservations/{reservation}', [AdminReservationController::class, 'show'])->name('reservations.show');
     Route::patch('/reservations/{reservation}/status', [AdminReservationController::class, 'updateStatus'])->name('reservations.update-status');
+    Route::post('/reservations/{reservation}/cancellation', [AdminReservationController::class, 'handleCancellation'])->name('reservations.cancellation');
     Route::delete('/reservations/{reservation}', [AdminReservationController::class, 'destroy'])->name('reservations.destroy');
 
     // Bus Management routes

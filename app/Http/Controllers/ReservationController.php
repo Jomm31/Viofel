@@ -303,8 +303,12 @@ class ReservationController extends Controller
     /**
      * Delete/Cancel a reservation.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string|max:1000',
+        ]);
+
         try {
             DB::beginTransaction();
 
@@ -318,14 +322,18 @@ class ReservationController extends Controller
                 ], 400);
             }
 
-            // Delete the reservation (cascade will delete booking reference)
-            $reservation->delete();
+            // Update reservation with cancellation info (pending admin approval)
+            $reservation->update([
+                'cancellation_reason' => $validated['cancellation_reason'],
+                'cancelled_at' => now(),
+                'cancellation_status' => 'pending_approval',
+            ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Reservation cancelled successfully!',
+                'message' => 'Cancellation request submitted! Please wait for admin approval.',
             ]);
 
         } catch (\Exception $e) {
@@ -333,7 +341,7 @@ class ReservationController extends Controller
             
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to cancel reservation. Please try again.',
+                'message' => 'Failed to submit cancellation request. Please try again.',
                 'error' => $e->getMessage(),
             ], 500);
         }

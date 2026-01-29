@@ -23,14 +23,23 @@ class FaqController extends Controller
             'answer'   => 'required|string',
         ]);
 
-        Faq::create($request->only(['question', 'answer']));
+        $faq = Faq::create($request->only(['question', 'answer']));
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'faq' => $faq]);
+        }
 
         return redirect()->route('admin.faqs')->with('success', 'FAQ added successfully!');
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
-        Faq::findOrFail($id)->delete();
+        Faq::where('faq_id', $id)->delete();
+        
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->route('admin.faqs')->with('success', 'FAQ deleted successfully!');
     }
 
@@ -49,8 +58,12 @@ class FaqController extends Controller
             'answer'   => 'required|string',
         ]);
 
-        $faq = Faq::findOrFail($id);
+        $faq = Faq::where('faq_id', $id)->firstOrFail();
         $faq->update($request->only(['question', 'answer']));
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'faq' => $faq]);
+        }
 
         return redirect()->route('admin.faqs')->with('success', 'FAQ updated successfully!');
     }

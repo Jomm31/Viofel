@@ -29,6 +29,9 @@ class Reservation extends Model
         'departure_time',
         'arrival_time',
         'status',
+        'cancellation_reason',
+        'cancelled_at',
+        'cancellation_status',
     ];
 
     /**
@@ -38,6 +41,7 @@ class Reservation extends Model
         'reservation_date' => 'date',
         'departure_time' => 'datetime',
         'arrival_time' => 'datetime',
+        'cancelled_at' => 'datetime',
         'distance_km' => 'decimal:2',
     ];
 

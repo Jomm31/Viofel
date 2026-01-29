@@ -1,8 +1,25 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 
 export default function Navigation() {
     const [isOpen, setIsOpen] = useState(false);
+
+    // Handle scroll to section on homepage
+    const handleScrollToSection = (sectionId, e) => {
+        e.preventDefault();
+        
+        // Check if we're on the homepage
+        if (window.location.pathname === '/') {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                setIsOpen(false);
+            }
+        } else {
+            // Navigate to homepage with hash
+            window.location.href = `/#${sectionId}`;
+        }
+    };
 
     return (
         <nav 
@@ -38,33 +55,36 @@ export default function Navigation() {
                             Status
                         </Link>
                         <Link 
-                            href="/payment" 
+                            href="/status" 
                             className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                         >
                             Payment
                         </Link>
-                        <Link 
-                            href="/customer-support" 
-                            className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                        <a 
+                            href="#contact-section"
+                            onClick={(e) => handleScrollToSection('contact-section', e)}
+                            className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium cursor-pointer"
                         >
                             Customer Support
-                        </Link>
-                        <Link 
-                            href="/about" 
-                            className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                        </a>
+                        <a 
+                            href="#about-section"
+                            onClick={(e) => handleScrollToSection('about-section', e)}
+                            className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium cursor-pointer"
                         >
                             About Us
-                        </Link>
+                        </a>
                     </div>
 
                     {/* Learn More Button */}
                     <div className="hidden md:block">
-                        <Link 
-                            href="/learn-more"
-                            className="bg-red-800 hover:bg-red-900 text-white px-6 py-2 rounded-full text-sm font-medium transition duration-200"
+                        <a 
+                            href="#about-section"
+                            onClick={(e) => handleScrollToSection('about-section', e)}
+                            className="bg-red-800 hover:bg-red-900 text-white px-6 py-2 rounded-full text-sm font-medium transition duration-200 cursor-pointer"
                         >
                             Learn More ›
-                        </Link>
+                        </a>
                     </div>
 
                     {/* Mobile menu button */}
@@ -103,30 +123,33 @@ export default function Navigation() {
                             Status
                         </Link>
                         <Link 
-                            href="/payment" 
+                            href="/status" 
                             className="block text-gray-700 hover:text-red-900 px-3 py-2 rounded-md text-base font-medium"
                         >
                             Payment
                         </Link>
-                        <Link 
-                            href="/customer-support" 
-                            className="block text-gray-700 hover:text-red-900 px-3 py-2 rounded-md text-base font-medium"
+                        <a 
+                            href="#contact-section"
+                            onClick={(e) => handleScrollToSection('contact-section', e)}
+                            className="block text-gray-700 hover:text-red-900 px-3 py-2 rounded-md text-base font-medium cursor-pointer"
                         >
                             Customer Support
-                        </Link>
-                        <Link 
-                            href="/about" 
-                            className="block text-gray-700 hover:text-red-900 px-3 py-2 rounded-md text-base font-medium"
+                        </a>
+                        <a 
+                            href="#about-section"
+                            onClick={(e) => handleScrollToSection('about-section', e)}
+                            className="block text-gray-700 hover:text-red-900 px-3 py-2 rounded-md text-base font-medium cursor-pointer"
                         >
                             About Us
-                        </Link>
+                        </a>
                         <div className="mt-4 px-3">
-                            <Link 
-                                href="/learn-more"
-                                className="block w-full text-center bg-red-800 hover:bg-red-900 text-white px-6 py-3 rounded-full text-base font-medium transition duration-200"
+                            <a 
+                                href="#about-section"
+                                onClick={(e) => handleScrollToSection('about-section', e)}
+                                className="block w-full text-center bg-red-800 hover:bg-red-900 text-white px-6 py-3 rounded-full text-base font-medium transition duration-200 cursor-pointer"
                             >
                                 Learn More ›
-                            </Link>
+                            </a>
                         </div>
                     </div>
                 </div>
