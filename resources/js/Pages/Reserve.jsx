@@ -301,8 +301,14 @@ export default function Reserve() {
                   <label className="block text-lg font-medium text-gray-700 mb-2">Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={data.phone}
-                    onChange={e => setData('phone', e.target.value)}
+                    onChange={e => {
+                      // Only allow numbers
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setData('phone', val);
+                    }}
                     placeholder="Enter your phone number"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required

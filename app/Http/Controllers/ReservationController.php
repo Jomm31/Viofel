@@ -20,7 +20,7 @@ class ReservationController extends Controller
             // Customer fields
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|digits_between:7,20',
             'address' => 'nullable|string|max:500',
             'valid_id' => 'nullable|string|max:255',
             'valid_id_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -233,7 +233,7 @@ class ReservationController extends Controller
             // Customer fields
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|digits_between:7,20',
             'address' => 'nullable|string|max:500',
             
             // Reservation fields

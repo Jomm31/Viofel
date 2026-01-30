@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\BusController;
 use App\Http\Controllers\Admin\PricingController;
+use App\Http\Controllers\Admin\AuthController;
 use Inertia\Inertia;
 
 /*
@@ -65,8 +66,17 @@ Route::prefix('api')->group(function () {
 Route::get('/payments/success', [PaymentController::class, 'paymentSuccess'])->name('payments.success');
 Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook'])->name('webhooks.paymongo');
 
-// Admin routes (TODO: Add authentication middleware when needed)
+// Admin authentication routes (accessible without auth)
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+});
+
+// Protected Admin routes (require authentication)
+Route::prefix('admin')->name('admin.')->middleware(['admin'])->group(function () {
+    // Logout route
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    
     // Admin dashboard - redirect to analytics
     Route::get('/', function () {
         return redirect()->route('admin.analytics');
