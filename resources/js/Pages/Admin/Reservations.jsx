@@ -233,6 +233,7 @@ export default function Reservations({ reservations, currentStatus, search }) {
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Reference</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Customer</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Valid ID</th>
+                  <th className="text-left py-3 px-4 text-gray-600 font-semibold">Type of Trip</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Route</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Date</th>
                   <th className="text-left py-3 px-4 text-gray-600 font-semibold">Passengers</th>
@@ -278,6 +279,9 @@ export default function Reservations({ reservations, currentStatus, search }) {
                         ) : (
                           <span className="text-xs text-gray-400">No ID</span>
                         )}
+                      </td>
+                      <td className= "py-3 px-4 text-gray-700">
+                        {reservation.travel_options}
                       </td>
                       <td className="py-3 px-4 text-gray-700">
                         {reservation.origin} → {reservation.destination}
