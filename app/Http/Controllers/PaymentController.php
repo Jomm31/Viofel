@@ -206,6 +206,35 @@ class PaymentController extends Controller
                 ]
             ];
 
+            // Log reservation data for debugging
+            Log::info('Payment checkout attempt', [
+                'reservation_id' => $reservationId,
+                'customer_id' => $reservation->customer_id,
+                'customer' => $reservation->customer,
+                'email' => $reservation->customer->email ?? null,
+                'full_name' => $reservation->customer->full_name ?? null,
+                'phone' => $reservation->customer->phone ?? null
+            ]);
+
+            // Check if customer exists
+            if (!$reservation->customer) {
+                return response()->json([
+                    'error' => 'Customer information not found. Please contact support.'
+                ], 422);
+            }
+
+            // Validate customer email before creating checkout
+            $customerEmail = $reservation->customer->email ?? null;
+            
+            // Check for valid email with proper domain (e.g., user@domain.com)
+            $emailPattern = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
+            if (empty($customerEmail) || !preg_match($emailPattern, $customerEmail)) {
+                return response()->json([
+                    'error' => 'A valid email address with a proper domain (e.g., user@gmail.com) is required for payment. The email "' . ($customerEmail ?? 'none') . '" is not valid.',
+                    'debug' => config('app.debug') ? ['email_provided' => $customerEmail ?? 'null'] : null
+                ], 422);
+            }
+            
             // Create PayMongo checkout session
             $checkout = Paymongo::checkout()->create([
                 'cancel_url' => url('/status?cancelled=true'),
@@ -215,7 +244,7 @@ class PaymentController extends Controller
                 'description' => 'Bus Reservation Payment for ' . ($reservation->bookingReference->booking_reference ?? 'N/A'),
                 'billing' => [
                     'name' => $reservation->customer->full_name ?? 'Customer',
-                    'email' => $reservation->customer->email ?? null,
+                    'email' => $reservation->customer->email,
                     'phone' => $reservation->customer->phone ?? null
                 ],
                 'metadata' => [
@@ -234,6 +263,12 @@ class PaymentController extends Controller
                 'paymongo_checkout_id' => $checkout->id,
                 'checkout_url' => $checkout->checkout_url,
                 'payment_method' => $request->payment_method
+            ]);
+
+            // Store checkout info in session for fallback lookup
+            session([
+                'last_checkout_id' => $checkout->id,
+                'last_checkout_reservation_id' => $reservationId
             ]);
 
             Log::info('Checkout created', [
@@ -273,25 +308,53 @@ class PaymentController extends Controller
     public function paymentSuccess(Request $request)
     {
         try {
-            $checkoutId = $request->query('checkout_id');
+            // PayMongo may send the checkout ID as 'checkout_id' or 'session_id'
+            $checkoutId = $request->query('checkout_id') ?? $request->query('session_id');
             
-            if (empty($checkoutId)) {
-                Log::warning('Payment success called without checkout_id');
-                return redirect('/status?error=missing_checkout_id');
+            // Handle case where placeholder wasn't replaced
+            if (empty($checkoutId) || $checkoutId === '{CHECKOUT_SESSION_ID}') {
+                Log::warning('Payment success called with invalid checkout_id: ' . ($checkoutId ?? 'null'));
+                
+                // Try to get checkout_id from session (stored during checkout creation)
+                $sessionCheckoutId = session('last_checkout_id');
+                if ($sessionCheckoutId) {
+                    $checkoutId = $sessionCheckoutId;
+                    Log::info('Found checkout_id from session', ['checkout_id' => $checkoutId]);
+                    session()->forget(['last_checkout_id', 'last_checkout_reservation_id']);
+                } else {
+                    // Fallback: Try to find the most recent awaiting_payment invoice
+                    $invoice = Invoice::where('status', 'awaiting_payment')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                        
+                    if ($invoice && $invoice->paymongo_checkout_id) {
+                        $checkoutId = $invoice->paymongo_checkout_id;
+                        Log::info('Found invoice by awaiting_payment status', ['checkout_id' => $checkoutId]);
+                    } else {
+                        return redirect('/status?error=missing_checkout_id');
+                    }
+                }
             }
 
             // Find invoice by checkout ID
             $invoice = Invoice::where('paymongo_checkout_id', $checkoutId)->first();
             
             if (!$invoice) {
-                Log::warning('Invoice not found for checkout: ' . $checkoutId);
+                Log::warning('Invoice not found for checkout: ' . $checkoutId);;
                 return redirect('/status?error=invoice_not_found');
             }
 
             // Retrieve checkout session from PayMongo
             $checkout = Paymongo::checkout()->find($checkoutId);
             
-            if ($checkout && $checkout->status === 'active') {
+            Log::info('Checkout session retrieved', [
+                'checkout_id' => $checkoutId,
+                'status' => $checkout->status ?? 'unknown',
+                'payments_count' => count($checkout->payments ?? [])
+            ]);
+            
+            // Check if checkout exists and has payments (status can be 'active', 'complete', or 'paid')
+            if ($checkout && in_array($checkout->status, ['active', 'complete', 'paid'])) {
                 // Get payment from checkout
                 $payments = $checkout->payments ?? [];
                 $paymentId = null;
@@ -330,11 +393,24 @@ class PaymentController extends Controller
                 return redirect('/status?payment=success&reference=' . ($referenceNumber ?? ''));
             }
 
+            // Handle other checkout statuses
+            Log::warning('Checkout status not completed', [
+                'checkout_id' => $checkoutId,
+                'status' => $checkout->status ?? 'unknown'
+            ]);
+
+            // If expired or cancelled, show appropriate message
+            if ($checkout && in_array($checkout->status, ['expired', 'cancelled'])) {
+                return redirect('/status?cancelled=true');
+            }
+
             return redirect('/status?payment=pending');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Payment success processing error: ' . $e->getMessage());
+            Log::error('Payment success processing error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect('/status?error=processing_failed');
         }
     }
@@ -576,20 +652,52 @@ class PaymentController extends Controller
                 }
 
                 if ($refund->calculatedCost && $refund->calculatedCost->invoice) {
-                    $refund->calculatedCost->invoice->update([
+                    $invoice = $refund->calculatedCost->invoice;
+                    
+                    $invoice->update([
                         'status' => 'refunded',
                         'refunded_at' => now()
                     ]);
 
-                    // TODO: Implement PayMongo refund API call here when needed
-                    // if ($refund->calculatedCost->invoice->paymongo_payment_id) {
-                    //     $paymongoRefund = Paymongo::refund()->create([
-                    //         'amount' => (int)($refund->amount * 100),
-                    //         'payment_id' => $refund->calculatedCost->invoice->paymongo_payment_id,
-                    //         'reason' => 'requested_by_customer'
-                    //     ]);
-                    //     $refund->update(['paymongo_refund_id' => $paymongoRefund->id]);
-                    // }
+                    // Process PayMongo refund if payment was made through PayMongo
+                    if ($invoice->paymongo_payment_id) {
+                        try {
+                            $paymongoRefund = Paymongo::refund()->create([
+                                'amount' => (int)($refund->amount * 100), // Convert to centavos
+                                'payment_id' => $invoice->paymongo_payment_id,
+                                'reason' => 'requested_by_customer',
+                                'notes' => $refund->reason ?? 'Customer requested refund'
+                            ]);
+
+                            $refund->update(['paymongo_refund_id' => $paymongoRefund->id]);
+
+                            Log::info('PayMongo refund processed successfully', [
+                                'refund_id' => $refund->refund_id,
+                                'paymongo_refund_id' => $paymongoRefund->id,
+                                'amount' => $refund->amount,
+                                'payment_id' => $invoice->paymongo_payment_id
+                            ]);
+                        } catch (\Exception $refundException) {
+                            // Log the error but don't fail the whole transaction
+                            // The refund is still approved internally, PayMongo refund can be retried
+                            Log::error('PayMongo refund API error', [
+                                'refund_id' => $refund->refund_id,
+                                'payment_id' => $invoice->paymongo_payment_id,
+                                'error' => $refundException->getMessage()
+                            ]);
+
+                            // Update refund with error note
+                            $refund->update([
+                                'admin_notes' => ($request->admin_notes ? $request->admin_notes . ' | ' : '') . 
+                                    'PayMongo refund failed: ' . $refundException->getMessage()
+                            ]);
+                        }
+                    } else {
+                        Log::info('Refund approved without PayMongo (no payment_id)', [
+                            'refund_id' => $refund->refund_id,
+                            'invoice_id' => $invoice->invoice_id
+                        ]);
+                    }
                 }
             }
 

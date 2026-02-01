@@ -19,7 +19,7 @@ class ReservationController extends Controller
         $validated = $request->validate([
             // Customer fields
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'required|email:rfc,dns|max:255',
             'phone' => 'required|digits_between:7,20',
             'address' => 'nullable|string|max:500',
             'valid_id' => 'nullable|string|max:255',

@@ -51,6 +51,7 @@ export default function Status() {
     const payment = urlParams.get('payment');
     const ref = urlParams.get('reference');
     const errorParam = urlParams.get('error');
+    const cancelled = urlParams.get('cancelled');
 
     if (payment === 'success' && ref) {
       setPaymentSuccess(true);
@@ -59,8 +60,15 @@ export default function Status() {
       lookupReservation(ref);
     }
 
-    if (errorParam) {
-      setError('Payment processing failed. Please try again.');
+    if (cancelled === 'true') {
+      setError('Payment was cancelled. You can try again when ready.');
+    } else if (errorParam) {
+      const errorMessages = {
+        'missing_checkout_id': 'Payment session expired. Please try again.',
+        'invoice_not_found': 'Payment record not found. Please try again or contact support.',
+        'processing_failed': 'Payment processing failed. Please try again.',
+      };
+      setError(errorMessages[errorParam] || 'Payment processing failed. Please try again.');
     }
   }, []);
 

@@ -240,7 +240,7 @@ export default function Reserve() {
                   {errors.departure_time && <div className="text-red-600 text-sm mt-1">{errors.departure_time}</div>}
                 </div>
                 <div>
-                  <label className="block text-lg font-medium text-gray-700 mb-2">Estimated Arrival (Optional)</label>
+                  <label className="block text-lg font-medium text-gray-700 mb-2">Estimated Arrival</label>
                   <input
                     type="time"
                     value={data.arrival_time}
@@ -290,7 +290,9 @@ export default function Reserve() {
                     type="email"
                     value={data.email}
                     onChange={e => setData('email', e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Enter your email (e.g., user@gmail.com)"
+                    pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                    title="Please enter a valid email with a proper domain (e.g., user@gmail.com)"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />

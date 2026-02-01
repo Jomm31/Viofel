@@ -222,7 +222,10 @@ export default function Welcome({ faqs = [] }) {
                   <input
                     type="tel"
                     value={data.contact_number}
-                    onChange={e => setData('contact_number', e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      setData('contact_number', val)}
+                    }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />
