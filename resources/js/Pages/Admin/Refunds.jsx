@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Components/AdminLayout';
+import { router } from '@inertiajs/react';
+import axios from 'axios';
 
 /**
  * Admin Refunds Page
@@ -49,29 +51,21 @@ export default function Refunds({ refunds = [] }) {
         
         setProcessingId(refundId);
         try {
-            const response = await fetch(`/admin/refunds/${refundId}/process`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
-                },
-                body: JSON.stringify({ 
-                    action,
-                    admin_notes: adminNotes 
-                }),
+            const response = await axios.post(`/admin/refunds/${refundId}/process`, {
+                action,
+                admin_notes: adminNotes 
             });
             
-            const data = await response.json();
-            
-            if (response.ok && data.success) {
+            if (response.data.success) {
                 alert(`Refund ${action} successfully!`);
-                window.location.reload();
+                router.reload();
             } else {
-                alert(data.error || 'Failed to process refund');
+                alert(response.data.error || 'Failed to process refund');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while processing refund');
+            const errorMessage = error.response?.data?.error || error.response?.data?.message || 'An error occurred while processing refund';
+            alert(errorMessage);
         } finally {
             setProcessingId(null);
             setAdminNotes('');
