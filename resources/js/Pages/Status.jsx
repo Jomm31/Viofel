@@ -556,19 +556,36 @@ export default function Status() {
                 </div>
               )}
               {(bookingDetails.status === 'pending' || bookingDetails.status === 'confirmed') && (
-                <div className="flex gap-4 justify-center mb-6 flex-wrap">
-                  <button
-                    onClick={handleViewInvoice}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
-                  >
-                    📄 View Invoice
-                  </button>
-                  <button
-                    onClick={handleRefundClick}
-                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
-                  >
-                    Request Refund
-                  </button>
+                <div className="flex flex-col items-center mb-6">
+                  <div className="flex gap-4 justify-center flex-wrap">
+                    <button
+                      onClick={handleViewInvoice}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
+                    >
+                      📄 View Invoice
+                    </button>
+                    {(!bookingDetails.refund || bookingDetails.refund.status === 'rejected') && (
+                      <button
+                        onClick={handleRefundClick}
+                        className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
+                      >
+                        Request Refund
+                      </button>
+                    )}
+                    {bookingDetails.refund?.status === 'pending' && (
+                      <span className="bg-yellow-100 text-yellow-800 px-6 py-3 rounded-full text-sm font-bold">
+                        ⏳ Refund Request Pending
+                      </span>
+                    )}
+                  </div>
+                  {bookingDetails.refund?.status === 'rejected' && (
+                    <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-4 max-w-md text-center">
+                      <p className="text-red-700 font-semibold">❌ Your refund request was rejected</p>
+                      {bookingDetails.refund.admin_notes && (
+                        <p className="text-red-600 text-sm mt-1">Reason: {bookingDetails.refund.admin_notes}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {bookingDetails.status === 'cancelled' && (
@@ -1048,37 +1065,6 @@ export default function Status() {
                   >
                     <div className="font-semibold text-purple-600">Card</div>
                     <div className="text-xs text-gray-500">Credit/Debit Card</div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Manual Payment Options */}
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500 font-semibold">MANUAL PAYMENT (Admin Verification)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('bank_transfer')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'bank_transfer' 
-                        ? 'border-orange-500 bg-orange-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-orange-600">Bank Transfer</div>
-                    <div className="text-xs text-gray-500">Manual verification</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'cash' 
-                        ? 'border-gray-500 bg-gray-100' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-gray-600">Cash</div>
-                    <div className="text-xs text-gray-500">Pay in person</div>
                   </button>
                 </div>
               </div>

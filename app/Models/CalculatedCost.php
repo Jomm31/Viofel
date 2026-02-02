@@ -37,4 +37,12 @@ class CalculatedCost extends Model
     {
         return $this->hasMany(Refund::class, 'calculated_cost_id', 'calculated_cost_id');
     }
+
+    /**
+     * Get the latest refund for this calculated cost
+     */
+    public function refund()
+    {
+        return $this->hasOne(Refund::class, 'calculated_cost_id', 'calculated_cost_id')->latestOfMany('refund_id');
+    }
 }

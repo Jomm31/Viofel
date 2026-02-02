@@ -170,7 +170,10 @@ class ReservationController extends Controller
             ], 404);
         }
 
-        $reservation = $bookingReference->reservation->load(['customer', 'calculatedCost']);
+        $reservation = $bookingReference->reservation->load(['customer', 'calculatedCost.refund']);
+
+        // Get refund info if exists
+        $refund = $reservation->calculatedCost?->refund;
 
         // Calculate breakdown
         $passengers = $reservation->estimated_passengers;
@@ -220,6 +223,13 @@ class ReservationController extends Controller
                 'bus_cost' => $busCost,
                 'passenger_cost' => $passengerCost,
                 'created_at' => $reservation->created_at->format('M d, Y'),
+                'refund' => $refund ? [
+                    'status' => $refund->status,
+                    'reason' => $refund->reason,
+                    'amount' => $refund->amount,
+                    'admin_notes' => $refund->admin_notes,
+                    'refund_date' => $refund->refund_date?->format('M d, Y'),
+                ] : null,
             ],
         ]);
     }
