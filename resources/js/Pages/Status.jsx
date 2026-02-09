@@ -30,6 +30,7 @@ export default function Status() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [showEditForm, setShowEditForm] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
   const [editFormData, setEditFormData] = useState({
     full_name: '',
@@ -50,6 +51,7 @@ export default function Status() {
     const urlParams = new URLSearchParams(window.location.search);
     const payment = urlParams.get('payment');
     const ref = urlParams.get('reference');
+    const reservationId = urlParams.get('reservation_id');
     const errorParam = urlParams.get('error');
     const cancelled = urlParams.get('cancelled');
 
@@ -58,6 +60,17 @@ export default function Status() {
       setReferenceNumber(ref);
       // Auto-lookup the reservation
       lookupReservation(ref);
+    }
+
+    // Handle redirect back from PayMongo checkout session
+    if (payment === 'success' && reservationId && !ref) {
+      setPaymentSuccess(true);
+      // Auto-verify and look up by reservation ID
+      verifyPaymentById(reservationId);
+    }
+
+    if (payment === 'cancelled') {
+      setError('Payment was cancelled. You can try again when ready.');
     }
 
     if (cancelled === 'true') {
@@ -79,11 +92,68 @@ export default function Status() {
       });
       
       if (response.data.success) {
-        setBookingDetails(response.data.reservation);
+        const reservation = response.data.reservation;
+        setBookingDetails(reservation);
         setShowDetails(true);
+        
+        // Auto-verify payment if status is not_paid (user might have just paid)
+        if (reservation.status === 'not_paid' && reservation.id) {
+          verifyPaymentStatus(reservation.id);
+        }
       }
     } catch (err) {
       console.error('Lookup error:', err);
+    }
+  };
+
+  /**
+   * Verify payment status with PayMongo
+   * Called automatically when viewing a not_paid reservation
+   */
+  const verifyPaymentStatus = async (reservationId) => {
+    setVerifyingPayment(true);
+    try {
+      const response = await axios.get(`/api/payments/${reservationId}/verify`);
+      
+      if (response.data.success && response.data.status === 'paid') {
+        setPaymentSuccess(true);
+        // Refresh booking details to show updated status
+        const lookupResponse = await axios.post('/api/reservations/lookup', {
+          reference_number: referenceNumber,
+        });
+        if (lookupResponse.data.success) {
+          setBookingDetails(lookupResponse.data.reservation);
+        }
+      }
+    } catch (err) {
+      console.error('Payment verification error:', err);
+    } finally {
+      setVerifyingPayment(false);
+    }
+  };
+
+  /**
+   * Verify payment by reservation ID (used after PayMongo redirect)
+   * Also looks up the reservation details
+   */
+  const verifyPaymentById = async (resId) => {
+    setVerifyingPayment(true);
+    try {
+      const verifyResponse = await axios.get(`/api/payments/${resId}/verify`);
+      
+      if (verifyResponse.data.success && verifyResponse.data.status === 'paid') {
+        setPaymentSuccess(true);
+        // Look up reservation details using the reference from verification
+        if (verifyResponse.data.reference) {
+          setReferenceNumber(verifyResponse.data.reference);
+          await lookupReservation(verifyResponse.data.reference);
+        }
+      }
+    } catch (err) {
+      console.error('Payment verification by ID error:', err);
+      setError('Payment verification is in progress. Please enter your reference number to check status.');
+    } finally {
+      setVerifyingPayment(false);
     }
   };
 
@@ -99,8 +169,14 @@ export default function Status() {
       });
       
       if (response.data.success) {
-        setBookingDetails(response.data.reservation);
+        const reservation = response.data.reservation;
+        setBookingDetails(reservation);
         setShowDetails(true);
+        
+        // Auto-verify payment if status is not_paid
+        if (reservation.status === 'not_paid' && reservation.id) {
+          verifyPaymentStatus(reservation.id);
+        }
       }
     } catch (err) {
       if (err.response?.status === 404) {
@@ -263,16 +339,10 @@ export default function Status() {
   };
 
   /**
-   * Process payment via PayMongo checkout
-   * Validates payment method and redirects to PayMongo
+   * Process payment via PayMongo
+   * Redirects directly to PayMongo payment page
    */
   const confirmPayment = async () => {
-    // Input validation
-    if (!paymentMethod) {
-      alert('Please select a payment method');
-      return;
-    }
-
     if (!bookingDetails?.id) {
       alert('Invalid booking details. Please refresh and try again.');
       return;
@@ -282,53 +352,66 @@ export default function Status() {
     setError('');
     
     try {
-      // For PayMongo-supported methods, create checkout session
-      if (['gcash', 'grab_pay', 'card', 'paymaya'].includes(paymentMethod)) {
-        console.log('Creating checkout for reservation:', bookingDetails.id, 'Payment method:', paymentMethod);
+      console.log('Creating payment link for reservation:', bookingDetails.id);
+      
+      const response = await axios.post(`/api/payments/${bookingDetails.id}/checkout`, {});
+      
+      console.log('Payment response:', response.data);
+      
+      if (response.data.success && response.data.checkout_url) {
+        // Open PayMongo in a new window
+        const paymentWindow = window.open(response.data.checkout_url, '_blank');
         
-        const response = await axios.post(`/api/payments/${bookingDetails.id}/checkout`, {
-          payment_method: paymentMethod
-        });
+        // Close the payment modal
+        setShowPaymentModal(false);
+        setProcessing(false);
         
-        console.log('Checkout response:', response.data);
-        
-        if (response.data.success && response.data.checkout_url) {
-          // Redirect to PayMongo checkout
-          console.log('Redirecting to:', response.data.checkout_url);
-          window.location.href = response.data.checkout_url;
-          return;
-        } else {
-          // Show error if checkout creation failed
-          const errorMsg = response.data.error || response.data.message || 'Failed to create payment checkout. Please try again.';
-          console.error('Checkout creation failed:', errorMsg);
-          setError(errorMsg);
-          setProcessing(false);
-          return;
-        }
-      } else {
-        // For other methods (bank transfer, cash), use manual process
-        const response = await axios.post(`/api/payments/${bookingDetails.id}/process`, {
-          payment_method: paymentMethod
-        });
-        
-        if (response.data.success) {
-          setShowPaymentModal(false);
-          setPaymentMethod('');
-          // Refresh booking details
-          const lookupResponse = await axios.post('/api/reservations/lookup', {
-            reference_number: referenceNumber,
-          });
-          if (lookupResponse.data.success) {
-            setBookingDetails(lookupResponse.data.reservation);
+        // Start polling for payment status
+        const pollInterval = setInterval(async () => {
+          try {
+            const verifyResponse = await axios.get(`/api/payments/${bookingDetails.id}/verify`);
+            console.log('Payment status check:', verifyResponse.data);
+            
+            if (verifyResponse.data.success && verifyResponse.data.status === 'paid') {
+              // Payment confirmed!
+              clearInterval(pollInterval);
+              setPaymentSuccess(true);
+              
+              // Refresh booking details
+              const lookupResponse = await axios.post('/api/reservations/lookup', {
+                reference_number: referenceNumber,
+              });
+              if (lookupResponse.data.success) {
+                setBookingDetails(lookupResponse.data.reservation);
+              }
+              
+              // Try to close the payment window if still open
+              if (paymentWindow && !paymentWindow.closed) {
+                paymentWindow.close();
+              }
+            }
+          } catch (err) {
+            console.log('Payment status check error:', err);
           }
-          alert('Payment marked as pending! Please complete your payment and wait for admin confirmation.');
-        }
+        }, 3000); // Check every 3 seconds
+        
+        // Stop polling after 10 minutes
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 600000);
+        
+        return;
+      } else {
+        const errorMsg = response.data.error || response.data.message || 'Failed to create payment. Please try again.';
+        console.error('Payment creation failed:', errorMsg);
+        setError(errorMsg);
+        setProcessing(false);
+        return;
       }
     } catch (err) {
       console.error('Payment error:', err);
       const errorMessage = err.response?.data?.message || err.response?.data?.error || 'Failed to process payment. Please try again.';
       setError(errorMessage);
-      // Don't close the modal so user can see the error
     } finally {
       setProcessing(false);
     }
@@ -534,12 +617,19 @@ export default function Status() {
             <div className="space-y-4">
               {/* Action Buttons */}
               {bookingDetails.status === 'not_paid' && (
-                <div className="flex gap-4 justify-center mb-6">
+                <div className="flex gap-4 justify-center mb-6 flex-wrap">
                   <button
                     onClick={handlePaymentClick}
                     className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors"
                   >
                     Pay Now
+                  </button>
+                  <button
+                    onClick={() => verifyPaymentStatus(bookingDetails.id)}
+                    disabled={verifyingPayment}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
+                  >
+                    {verifyingPayment ? 'Verifying...' : 'Already Paid? Verify'}
                   </button>
                   <button
                     onClick={handleEditClick}
@@ -966,7 +1056,7 @@ export default function Status() {
         </div>
       )}
 
-      {/* Payment Modal with PayMongo Integration */}
+      {/* Payment Confirmation Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-xl">
@@ -1009,70 +1099,13 @@ export default function Status() {
                 </p>
               </div>
 
-              {/* Payment Method Selection */}
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select Payment Method
-              </label>
-              
-              {/* Online Payment Options */}
-              <div className="space-y-2 mb-4">
-                <p className="text-xs text-gray-500 font-semibold">ONLINE PAYMENT (Instant)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('gcash')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'gcash' 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-blue-600">GCash</div>
-                    <div className="text-xs text-gray-500">Pay with GCash wallet</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('grab_pay')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'grab_pay' 
-                        ? 'border-green-500 bg-green-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-green-600">GrabPay</div>
-                    <div className="text-xs text-gray-500">Pay with GrabPay</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('paymaya')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'paymaya' 
-                        ? 'border-green-500 bg-green-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-green-600">Maya</div>
-                    <div className="text-xs text-gray-500">Pay with Maya</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('card')}
-                    className={`p-3 border-2 rounded-lg text-left transition-all ${
-                      paymentMethod === 'card' 
-                        ? 'border-purple-500 bg-purple-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-semibold text-purple-600">Card</div>
-                    <div className="text-xs text-gray-500">Credit/Debit Card</div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Security Notice */}
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-800">
-                  🔒 <strong>Secure Payment:</strong> Online payments are processed securely through PayMongo.
+              {/* Payment Info */}
+              <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
+                <p className="text-sm text-blue-800 mb-2">
+                  🔒 <strong>Secure Payment:</strong> PayMongo will open in a new window where you can choose your payment method (GCash, Maya, GrabPay, or Card).
+                </p>
+                <p className="text-sm text-green-700 font-medium">
+                  ✓ <strong>Auto-Update:</strong> This page will automatically update once your payment is complete. Just complete payment and come back here!
                 </p>
               </div>
             </div>
@@ -1080,7 +1113,6 @@ export default function Status() {
               <button
                 onClick={() => {
                   setShowPaymentModal(false);
-                  setPaymentMethod('');
                 }}
                 disabled={processing}
                 className="bg-black hover:bg-gray-800 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
@@ -1089,10 +1121,10 @@ export default function Status() {
               </button>
               <button
                 onClick={confirmPayment}
-                disabled={processing || !paymentMethod}
+                disabled={processing}
                 className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-50"
               >
-                {processing ? 'Processing...' : `Pay ₱${bookingDetails?.partial_payment ? parseFloat(bookingDetails.partial_payment).toLocaleString('en-PH') : '0'}`}
+                {processing ? 'Redirecting...' : `Proceed to Pay ₱${bookingDetails?.partial_payment ? parseFloat(bookingDetails.partial_payment).toLocaleString('en-PH') : '0'}`}
               </button>
             </div>
           </div>

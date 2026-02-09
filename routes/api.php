@@ -29,6 +29,7 @@ Route::get('/reservations/{reservationId}/invoice', [PaymentController::class, '
 
 // Payment routes
 Route::post('/payments/{reservationId}/checkout', [PaymentController::class, 'createCheckout']);
+Route::get('/payments/{reservationId}/verify', [PaymentController::class, 'verifyPayment']);
 Route::get('/payments/success', [PaymentController::class, 'paymentSuccess']);
 Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook']);
 Route::post('/payments/{reservationId}/process', [PaymentController::class, 'processPayment']);

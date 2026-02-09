@@ -144,9 +144,9 @@ class PaymentController extends Controller
     public function createCheckout(Request $request, $reservationId)
     {
         try {
-            // Validate request
+            // Validate request - make payment_method optional
             $validator = Validator::make($request->all(), [
-                'payment_method' => 'required|string|in:gcash,grab_pay,card,paymaya'
+                'payment_method' => 'nullable|string|in:gcash,grab_pay,card,paymaya'
             ]);
 
             if ($validator->fails()) {
@@ -155,6 +155,9 @@ class PaymentController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
+
+            // Always include all supported payment methods so PayMongo shows all options
+            $paymentMethods = ['card', 'gcash', 'grab_pay', 'paymaya'];
 
             $reservation = Reservation::with(['customer', 'calculatedCost', 'bookingReference'])
                 ->findOrFail($reservationId);
@@ -235,54 +238,66 @@ class PaymentController extends Controller
                 ], 422);
             }
             
-            // Create PayMongo checkout session
-            $checkout = Paymongo::checkout()->create([
-                'cancel_url' => url('/status?cancelled=true'),
-                'success_url' => url('/api/payments/success?checkout_id={CHECKOUT_SESSION_ID}'),
-                'line_items' => $lineItems,
-                'payment_method_types' => [$request->payment_method],
-                'description' => 'Bus Reservation Payment for ' . ($reservation->bookingReference->booking_reference ?? 'N/A'),
-                'billing' => [
-                    'name' => $reservation->customer->full_name ?? 'Customer',
-                    'email' => $reservation->customer->email,
-                    'phone' => $reservation->customer->phone ?? null
-                ],
-                'metadata' => [
-                    'reservation_id' => $reservation->reservation_id,
-                    'reference_number' => $reservation->bookingReference->booking_reference ?? null
-                ]
+            // Create PayMongo payment link (works without dashboard payment method config)
+            Log::info('Creating PayMongo payment link', [
+                'amount' => $partialPayment,
+                'reservation_id' => $reservationId,
             ]);
 
-            // Create invoice with checkout info
+            $link = Paymongo::link()->create([
+                'amount' => $partialPayment,
+                'description' => sprintf(
+                    'Bus Reservation - %s | Bus: ₱%s | %d Passengers: ₱%s',
+                    $reservation->bookingReference->booking_reference ?? 'N/A',
+                    number_format($busCost, 2),
+                    $passengers,
+                    number_format($passengerCost, 2)
+                ),
+                'remarks' => 'Reservation ID: ' . $reservation->reservation_id,
+            ]);
+
+            $checkoutUrl = $link->checkout_url;
+            $linkId = $link->id;
+
+            Log::info('Payment link created', [
+                'link_id' => $linkId,
+                'checkout_url' => $checkoutUrl,
+            ]);
+
+            // Get the booking reference for return URL
+            $bookingRef = $reservation->bookingReference->booking_reference ?? '';
+
+            // Create invoice with payment link info
             $invoice = Invoice::create([
                 'calculated_cost_id' => $reservation->calculatedCost->calculated_cost_id,
                 'invoice_number' => Invoice::generateInvoiceNumber(),
                 'issued_at' => now(),
                 'amount' => $partialPayment,
                 'status' => 'awaiting_payment',
-                'paymongo_checkout_id' => $checkout->id,
-                'checkout_url' => $checkout->checkout_url,
-                'payment_method' => $request->payment_method
+                'paymongo_checkout_id' => $linkId,
+                'checkout_url' => $checkoutUrl,
+                'payment_method' => $request->payment_method ?? 'multiple'
             ]);
 
-            // Store checkout info in session for fallback lookup
+            // Store link info in session for fallback lookup
             session([
-                'last_checkout_id' => $checkout->id,
+                'last_checkout_id' => $linkId,
                 'last_checkout_reservation_id' => $reservationId
             ]);
 
-            Log::info('Checkout created', [
+            Log::info('Invoice created for payment link', [
                 'reservation_id' => $reservationId,
-                'checkout_id' => $checkout->id,
+                'link_id' => $linkId,
                 'amount' => $partialPayment
             ]);
 
             return response()->json([
                 'success' => true,
-                'checkout_url' => $checkout->checkout_url,
-                'checkout_id' => $checkout->id,
+                'checkout_url' => $checkoutUrl,
+                'checkout_id' => $linkId,
                 'invoice_id' => $invoice->invoice_id,
-                'amount' => $partialPayment
+                'amount' => $partialPayment,
+                'booking_reference' => $bookingRef
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -296,6 +311,143 @@ class PaymentController extends Controller
                 'error' => 'Failed to create checkout session',
                 'message' => config('app.debug') ? $e->getMessage() : 'Please try again later.'
             ], 500);
+        }
+    }
+
+    /**
+     * Verify payment status for a reservation
+     * Checks PayMongo link status and updates invoice/reservation if paid
+     * 
+     * @param int $reservationId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyPayment($reservationId)
+    {
+        try {
+            $reservation = Reservation::with(['calculatedCost.invoice', 'bookingReference'])
+                ->findOrFail($reservationId);
+
+            $invoice = $reservation->calculatedCost->invoice ?? null;
+
+            if (!$invoice) {
+                return response()->json(['error' => 'No invoice found for this reservation'], 404);
+            }
+
+            // Already paid or confirmed
+            if (in_array($invoice->status, ['paid', 'confirmed'])) {
+                return response()->json([
+                    'success' => true,
+                    'status' => $invoice->status,
+                    'message' => 'Payment already confirmed.'
+                ]);
+            }
+
+            // Check if we have a PayMongo link/checkout ID
+            $linkId = $invoice->paymongo_checkout_id;
+            if (!$linkId) {
+                return response()->json(['error' => 'No payment session found'], 400);
+            }
+
+            // Try to find via payment link first (primary method)
+            try {
+                $link = Paymongo::link()->find($linkId);
+                $linkStatus = $link->status ?? null;
+
+                Log::info('PayMongo link status check', [
+                    'link_id' => $linkId,
+                    'status' => $linkStatus,
+                    'reservation_id' => $reservationId,
+                ]);
+
+                if ($linkStatus === 'paid') {
+                    DB::beginTransaction();
+
+                    $invoice->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+
+                    $reservation->update(['status' => 'pending']);
+
+                    DB::commit();
+
+                    $referenceNumber = $reservation->bookingReference->booking_reference ?? null;
+
+                    Log::info('Payment verified and confirmed via link', [
+                        'reservation_id' => $reservationId,
+                        'link_id' => $linkId,
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'status' => 'paid',
+                        'reference' => $referenceNumber,
+                        'message' => 'Payment confirmed successfully!'
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'status' => $linkStatus ?? 'unpaid',
+                    'message' => 'Payment not yet completed.'
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('PayMongo link verification error: ' . $e->getMessage());
+                
+                // Fallback: Try checking as checkout session
+                try {
+                    $checkout = Paymongo::checkout()->find($linkId);
+                    $checkoutStatus = $checkout->status ?? null;
+
+                    if (in_array($checkoutStatus, ['active', 'complete', 'paid'])) {
+                        $payments = $checkout->payments ?? [];
+                        $paymentId = null;
+
+                        if (!empty($payments)) {
+                            $paymentId = $payments[0]['id'] ?? null;
+                        }
+
+                        DB::beginTransaction();
+
+                        $invoice->update([
+                            'status' => 'paid',
+                            'paymongo_payment_id' => $paymentId,
+                            'paid_at' => now(),
+                        ]);
+
+                        $reservation->update(['status' => 'pending']);
+
+                        DB::commit();
+
+                        return response()->json([
+                            'success' => true,
+                            'status' => 'paid',
+                            'reference' => $reservation->bookingReference->booking_reference ?? null,
+                            'message' => 'Payment confirmed successfully!'
+                        ]);
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'status' => $checkoutStatus ?? 'unpaid',
+                        'message' => 'Payment not yet completed.'
+                    ]);
+                } catch (\Exception $innerE) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'unknown',
+                        'message' => 'Could not verify payment status. Please try again.'
+                    ]);
+                }
+            }
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['error' => 'Reservation not found'], 404);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Payment verification error: ' . $e->getMessage());
+            return response()->json(['error' => 'Payment verification failed'], 500);
         }
     }
 
