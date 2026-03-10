@@ -42,24 +42,24 @@ Route::get('/status', function () {
 Route::get('/homepage', [HomeController::class, 'homepage'])->name('homepage.form');
 
 // Public inquiry routes
-Route::post('/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
+Route::post('/inquiries', [InquiryController::class, 'store'])->middleware('throttle:inquiries')->name('inquiries.store');
 
 // API routes for reservations (no CSRF for API-like endpoints)
 Route::prefix('api')->group(function () {
-    Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
+    Route::post('/reservations', [ReservationController::class, 'store'])->middleware('throttle:reservations')->name('reservations.store');
     Route::post('/reservations/lookup', [ReservationController::class, 'lookup'])->name('reservations.lookup');
     Route::put('/reservations/{id}', [ReservationController::class, 'update'])->name('reservations.update');
     Route::delete('/reservations/{id}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
     Route::get('/reservations/{id}/invoice', [PaymentController::class, 'getInvoiceByReservation'])->name('reservations.invoice');
     
     // Payment API routes
-    Route::post('/payments/{reservation}/calculate', [PaymentController::class, 'calculateCost'])->name('payments.calculate');
-    Route::post('/payments/{reservation}/process', [PaymentController::class, 'processPayment'])->name('payments.process');
-    Route::post('/refunds/{invoice}/request', [PaymentController::class, 'requestRefund'])->name('refunds.request');
+    Route::post('/payments/{reservation}/calculate', [PaymentController::class, 'calculateCost'])->middleware('throttle:payments')->name('payments.calculate');
+    Route::post('/payments/{reservation}/process', [PaymentController::class, 'processPayment'])->middleware('throttle:payments')->name('payments.process');
+    Route::post('/refunds/{invoice}/request', [PaymentController::class, 'requestRefund'])->middleware('throttle:payments')->name('refunds.request');
     Route::get('/invoices/{invoice}', [PaymentController::class, 'generateInvoice'])->name('invoices.generate');
     
     // PayMongo checkout routes
-    Route::post('/payments/{reservation}/checkout', [PaymentController::class, 'createCheckout'])->name('payments.checkout');
+    Route::post('/payments/{reservation}/checkout', [PaymentController::class, 'createCheckout'])->middleware('throttle:payments')->name('payments.checkout');
 });
 
 // PayMongo callback routes (accessible without auth)
@@ -69,7 +69,7 @@ Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook'])->
 // Admin authentication routes (accessible without auth)
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('rate.login');
 });
 
 // Protected Admin routes (require authentication)
