@@ -1,9 +1,9 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 
 cd /var/www
 
-# Write .env from Render environment variables
+echo "==> Writing .env"
 cat > .env << EOF
 APP_NAME="${APP_NAME:-Viofel}"
 APP_ENV="${APP_ENV:-production}"
@@ -22,18 +22,28 @@ DB_USERNAME="${DB_USERNAME}"
 DB_PASSWORD="${DB_PASSWORD}"
 
 BROADCAST_DRIVER=log
-CACHE_DRIVER="${CACHE_DRIVER:-array}"
+CACHE_DRIVER=array
 FILESYSTEM_DISK=local
-QUEUE_CONNECTION="${QUEUE_CONNECTION:-sync}"
-SESSION_DRIVER="${SESSION_DRIVER:-cookie}"
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=cookie
 SESSION_LIFETIME=120
 EOF
 
-# Run database migrations
-php artisan migrate --force
+echo "==> .env written"
 
-# Create storage symlink
+echo "==> Ensuring storage directories"
+mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
+echo "==> Clearing bootstrap cache"
+rm -f bootstrap/cache/*.php
+
+echo "==> Running migrations"
+php artisan migrate --force || echo "Migration failed, continuing..."
+
+echo "==> Storage link"
 php artisan storage:link || true
 
-# Start services
+echo "==> Starting supervisord"
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
