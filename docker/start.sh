@@ -3,21 +3,34 @@ set -e
 
 cd /var/www
 
-# Create .env from environment variables if it doesn't exist
-if [ ! -f .env ]; then
-    cp .env.example .env
-fi
+# Write .env from Render environment variables
+cat > .env << EOF
+APP_NAME="${APP_NAME:-Viofel}"
+APP_ENV="${APP_ENV:-production}"
+APP_KEY="${APP_KEY}"
+APP_DEBUG="${APP_DEBUG:-false}"
+APP_URL="${APP_URL:-http://localhost}"
 
-# Generate app key if not set
-php artisan key:generate --force
+LOG_CHANNEL=stderr
+LOG_LEVEL=debug
+
+DB_CONNECTION="${DB_CONNECTION:-pgsql}"
+DB_HOST="${DB_HOST}"
+DB_PORT="${DB_PORT:-5432}"
+DB_DATABASE="${DB_DATABASE}"
+DB_USERNAME="${DB_USERNAME}"
+DB_PASSWORD="${DB_PASSWORD}"
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER="${CACHE_DRIVER:-database}"
+FILESYSTEM_DRIVER=local
+QUEUE_CONNECTION="${QUEUE_CONNECTION:-sync}"
+SESSION_DRIVER="${SESSION_DRIVER:-database}"
+SESSION_LIFETIME=120
+EOF
 
 # Run database migrations
 php artisan migrate --force
-
-# Cache config and routes for performance
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
 
 # Create storage symlink
 php artisan storage:link || true
