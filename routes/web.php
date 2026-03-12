@@ -82,6 +82,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
             'memory_limit' => ini_get('memory_limit'),
         ]);
     });
+    // Test analytics data without auth
+    Route::get('/test-analytics', function () {
+        try {
+            $controller = new \App\Http\Controllers\AnalyticsController();
+            return app()->call([$controller, 'dashboard']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => collect($e->getTrace())->take(5)->map(fn($t) => ($t['file'] ?? '?') . ':' . ($t['line'] ?? '?'))->toArray(),
+            ], 500);
+        }
+    });
 });
 
 // Protected Admin routes (require authentication)
