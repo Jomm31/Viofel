@@ -4,7 +4,12 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y \
     git curl libpng-dev libonig-dev libxml2-dev zip unzip \
     libpq-dev \
-    nginx supervisor nodejs npm \
+    nginx supervisor \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 from nodesource
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
@@ -22,7 +27,10 @@ COPY . .
 RUN composer install --optimize-autoloader --no-dev --no-interaction
 
 # Install Node dependencies and build frontend
-RUN npm install && npm run build
+RUN npm install && npm run build \
+    && echo "=== Build verification ===" \
+    && ls -la public/build/ \
+    && cat public/build/manifest.json
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
