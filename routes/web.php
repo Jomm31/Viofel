@@ -70,6 +70,18 @@ Route::post('/webhooks/paymongo', [PaymentController::class, 'handleWebhook'])->
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('rate.login');
+    // Temporary debug route - remove after fixing 502
+    Route::get('/debug', function () {
+        return response()->json([
+            'authenticated' => \Illuminate\Support\Facades\Auth::guard('admin')->check(),
+            'admin' => \Illuminate\Support\Facades\Auth::guard('admin')->user(),
+            'session_driver' => config('session.driver'),
+            'app_env' => config('app.env'),
+            'db_driver' => config('database.default'),
+            'php_version' => PHP_VERSION,
+            'memory_limit' => ini_get('memory_limit'),
+        ]);
+    });
 });
 
 // Protected Admin routes (require authentication)
