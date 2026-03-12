@@ -38,11 +38,11 @@ services:
           name: viofel-db
           property: password
       - key: SESSION_DRIVER
-        value: database
+        value: cookie
       - key: CACHE_DRIVER
-        value: database
+        value: array
       - key: QUEUE_CONNECTION
-        value: database
+        value: sync
 
 databases:
   - name: viofel-db
