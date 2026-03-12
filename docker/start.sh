@@ -4,12 +4,20 @@ set -e
 cd /var/www
 
 echo "==> Writing .env"
+
+# Fix APP_URL - ensure it has https:// prefix
+FIXED_APP_URL="${APP_URL:-http://localhost}"
+if [[ "$FIXED_APP_URL" != http://* ]] && [[ "$FIXED_APP_URL" != https://* ]]; then
+    FIXED_APP_URL="https://${FIXED_APP_URL}"
+fi
+
 cat > .env << EOF
 APP_NAME="${APP_NAME:-Viofel}"
 APP_ENV="${APP_ENV:-production}"
 APP_KEY="${APP_KEY}"
 APP_DEBUG=true
-APP_URL="${APP_URL:-http://localhost}"
+APP_URL="${FIXED_APP_URL}"
+ASSET_URL="${FIXED_APP_URL}"
 
 LOG_CHANNEL=stderr
 LOG_LEVEL=debug
