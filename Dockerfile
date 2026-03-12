@@ -15,6 +15,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 # Install PHP extensions
 RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
 
+# PHP config: increase memory limit and timeouts
+RUN echo "memory_limit=256M" > /usr/local/etc/php/conf.d/custom.ini \
+    && echo "max_execution_time=60" >> /usr/local/etc/php/conf.d/custom.ini
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
