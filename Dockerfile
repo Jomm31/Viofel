@@ -35,9 +35,9 @@ RUN rm -f /etc/nginx/sites-enabled/default.conf
 # Copy supervisor config
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy start script
+# Copy start script and fix Windows line endings
 COPY docker/start.sh /start.sh
-RUN chmod +x /start.sh
+RUN sed -i 's/\r//' /start.sh && chmod +x /start.sh
 
 EXPOSE 8080
 
