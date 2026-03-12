@@ -39,6 +39,12 @@ chmod -R 775 storage bootstrap/cache
 echo "==> Clearing bootstrap cache"
 rm -f bootstrap/cache/*.php
 
+echo "==> Checking build output"
+echo "public/build contents:"
+ls -laR public/build/ 2>&1 || echo "NO BUILD FOLDER!"
+echo "==> Checking manifest"
+cat public/build/manifest.json 2>/dev/null || cat public/build/.vite/manifest.json 2>/dev/null || echo "NO MANIFEST FOUND!"
+
 echo "==> Running migrations"
 php artisan migrate --force || echo "Migration failed, continuing..."
 
