@@ -52,14 +52,20 @@ class AnalyticsController extends Controller
             ->get();
 
         // Get monthly reservation trends (last 6 months)
+        $driver = DB::getDriverName();
+        if ($driver === 'pgsql') {
+            $monthExpr = "TO_CHAR(reservation_date, 'YYYY-MM')";
+        } else {
+            $monthExpr = 'DATE_FORMAT(reservation_date, "%Y-%m")';
+        }
         $monthlyTrends = Reservation::select(
-                DB::raw('DATE_FORMAT(reservation_date, "%Y-%m") as month'),
+                DB::raw($monthExpr . ' as month'),
                 DB::raw('count(*) as total'),
                 DB::raw('sum(estimated_passengers) as passengers')
             )
             ->where('reservation_date', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('month')
-            ->orderBy('month')
+            ->groupBy(DB::raw($monthExpr))
+            ->orderBy(DB::raw($monthExpr))
             ->get();
 
         // Get total passengers served
