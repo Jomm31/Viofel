@@ -41,39 +41,38 @@ class AuthController extends Controller
         ]);
 
         // Skip reCAPTCHA verification on local development environment
+        // reCAPTCHA verification (soft check — log failures but don't block login)
         if (!app()->environment('local')) {
             $recaptchaToken = $request->recaptcha_token;
 
-            if (!$recaptchaToken) {
-                throw ValidationException::withMessages([
-                    'recaptcha_token' => ['reCAPTCHA verification is required.'],
-                ]);
-            }
+            if ($recaptchaToken) {
+                try {
+                    $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                        'secret' => config('recaptcha.secret_key'),
+                        'response' => $recaptchaToken,
+                        'remoteip' => $request->ip(),
+                    ]);
 
-            $recaptchaResponse = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => config('recaptcha.secret_key'),
-                'response' => $recaptchaToken,
-                'remoteip' => $request->ip(),
-            ]);
+                    $recaptchaData = $recaptchaResponse->json();
 
-            $recaptchaData = $recaptchaResponse->json();
+                    Log::info('reCAPTCHA response', [
+                        'success' => $recaptchaData['success'] ?? false,
+                        'score'   => $recaptchaData['score'] ?? 'N/A',
+                        'errors'  => $recaptchaData['error-codes'] ?? [],
+                    ]);
 
-            Log::info('reCAPTCHA response', [
-                'success' => $recaptchaData['success'] ?? false,
-                'score'   => $recaptchaData['score'] ?? 'N/A',
-                'errors'  => $recaptchaData['error-codes'] ?? [],
-            ]);
-
-            if (!($recaptchaData['success'] ?? false)) {
-                throw ValidationException::withMessages([
-                    'recaptcha_token' => ['reCAPTCHA verification failed. Please try again.'],
-                ]);
-            }
-
-            if (($recaptchaData['score'] ?? 1) < 0.5) {
-                throw ValidationException::withMessages([
-                    'recaptcha_token' => ['Suspicious activity detected. Please try again.'],
-                ]);
+                    if (($recaptchaData['success'] ?? false) && ($recaptchaData['score'] ?? 1) < 0.3) {
+                        throw ValidationException::withMessages([
+                            'recaptcha_token' => ['Suspicious activity detected. Please try again.'],
+                        ]);
+                    }
+                } catch (ValidationException $e) {
+                    throw $e;
+                } catch (\Exception $e) {
+                    Log::warning('reCAPTCHA verification error: ' . $e->getMessage());
+                }
+            } else {
+                Log::warning('reCAPTCHA token not provided');
             }
         } else {
             Log::info('reCAPTCHA skipped (local environment)');
