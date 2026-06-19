@@ -6,7 +6,7 @@
 
 A comprehensive transport management platform for Viofel Transport, handling reservations, payments, fleet management, and customer support.
 
-## About Viofel Transport
+## About Viofel Transit
 
 Established in 2014, Viofel Transport first served services mostly in Fairview. Current operations rely heavily on transit cooperators overseeing many routes under Viofel's auspices. Viofel Transport works with cooperators who own and run buses under Viofel's corporate umbrella, providing:
 - Tour bus services (reservation-based with set schedules)
